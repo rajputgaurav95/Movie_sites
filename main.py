@@ -1,6 +1,7 @@
 from aiohttp import web
 import aiohttp_cors
-import asyncpg
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import os
@@ -13,14 +14,26 @@ DB_CONFIG = {
     'password': 'Gourav@123#',
     'host': 'db.ntshrlzpfyvfnkkxckfs.supabase.co',
     'port': 5432,
-    'database': 'postgres'
+    'dbname': 'postgres'
 }
 
 # Admin email
 ADMIN_EMAIL = "abc@gmail.com"
 
-# Global database pool
-db_pool = None
+# Global database connection
+db_connection = None
+
+
+def get_db_connection():
+    """Get or create database connection"""
+    global db_connection
+    try:
+        if db_connection is None or db_connection.closed:
+            db_connection = psycopg2.connect(**DB_CONFIG)
+        return db_connection
+    except Exception as e:
+        print(f"❌ Database connection error: {e}")
+        return None
 
 
 def get_client_ip(request):
@@ -73,62 +86,66 @@ def get_thumbnail_url(url):
 
 
 async def init_db(app):
-    """Initialize database connection pool"""
-    global db_pool
+    """Initialize database connection"""
+    global db_connection
     try:
-        db_pool = await asyncpg.create_pool(**DB_CONFIG, min_size=1, max_size=10)
+        db_connection = psycopg2.connect(**DB_CONFIG)
         print("✅ Connected to PostgreSQL successfully")
         
-        # Create tables if they don't exist
-        async with db_pool.acquire() as conn:
-            # Videos table
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS videos (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    url TEXT NOT NULL,
-                    embed_url TEXT,
-                    thumbnail TEXT,
-                    added_by TEXT NOT NULL,
-                    views INTEGER DEFAULT 0,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            ''')
-            
-            # Video views table
-            await conn.execute('''
-                CREATE TABLE IF NOT EXISTS video_views (
-                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                    video_id UUID REFERENCES videos(id) ON DELETE CASCADE,
-                    ip_hash TEXT NOT NULL,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    UNIQUE(video_id, ip_hash)
-                )
-            ''')
-            
-            # Create indexes
-            await conn.execute('CREATE INDEX IF NOT EXISTS idx_videos_created ON videos(created_at DESC)')
-            await conn.execute('CREATE INDEX IF NOT EXISTS idx_views_video ON video_views(video_id)')
-            await conn.execute('CREATE INDEX IF NOT EXISTS idx_views_created ON video_views(created_at)')
-            
+        cursor = db_connection.cursor()
+        
+        # Videos table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS videos (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                url TEXT NOT NULL,
+                embed_url TEXT,
+                thumbnail TEXT,
+                added_by TEXT NOT NULL,
+                views INTEGER DEFAULT 0,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        ''')
+        
+        # Video views table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS video_views (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                video_id UUID REFERENCES videos(id) ON DELETE CASCADE,
+                ip_hash TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                UNIQUE(video_id, ip_hash)
+            )
+        ''')
+        
+        # Create indexes
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_videos_created ON videos(created_at DESC)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_views_video ON video_views(video_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_views_created ON video_views(created_at)')
+        
+        db_connection.commit()
+        cursor.close()
+        
         print("✅ Database tables and indexes ready")
         
     except Exception as e:
         print(f"⚠️ Database connection failed: {e}")
-        print("⚠️ App will start but database operations may fail")
+        db_connection = None
 
 
 async def close_db(app):
-    """Close database connection pool"""
-    global db_pool
-    if db_pool:
-        await db_pool.close()
+    """Close database connection"""
+    global db_connection
+    if db_connection and not db_connection.closed:
+        db_connection.close()
         print("❌ Closed PostgreSQL connection")
 
 
 async def add_video(request):
     """Add a new video URL"""
     try:
-        if not db_pool:
+        conn = get_db_connection()
+        if not conn:
             return web.json_response({'error': 'Database not connected'}, status=503)
         
         data = await request.json()
@@ -141,14 +158,59 @@ async def add_video(request):
         if not user_email:
             return web.json_response({'error': 'Email is required'}, status=400)
         
-        async with db_pool.acquire() as conn:
-            row = await conn.fetchrow('''
-                INSERT INTO videos (url, embed_url, thumbnail, added_by, views, created_at)
-                VALUES ($1, $2, $3, $4, 0, NOW())
-                RETURNING id, url, embed_url, thumbnail, added_by, views, created_at
-            ''', url, get_embed_url(url), get_thumbnail_url(url), user_email)
-            
-            video = {
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('''
+            INSERT INTO videos (url, embed_url, thumbnail, added_by, views, created_at)
+            VALUES (%s, %s, %s, %s, 0, NOW())
+            RETURNING id, url, embed_url, thumbnail, added_by, views, created_at
+        ''', (url, get_embed_url(url), get_thumbnail_url(url), user_email))
+        
+        row = cursor.fetchone()
+        conn.commit()
+        cursor.close()
+        
+        video = {
+            '_id': str(row['id']),
+            'url': row['url'],
+            'embed_url': row['embed_url'],
+            'thumbnail': row['thumbnail'],
+            'added_by': row['added_by'],
+            'views': row['views'],
+            'created_at': row['created_at'].isoformat()
+        }
+        
+        return web.json_response({
+            'success': True,
+            'video': video
+        })
+    
+    except Exception as e:
+        print(f"Error adding video: {e}")
+        if conn:
+            conn.rollback()
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_videos(request):
+    """Get all videos"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return web.json_response({'error': 'Database not connected'}, status=503)
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('''
+            SELECT id, url, embed_url, thumbnail, added_by, views, created_at
+            FROM videos
+            ORDER BY created_at DESC
+        ''')
+        
+        rows = cursor.fetchall()
+        cursor.close()
+        
+        videos = []
+        for row in rows:
+            videos.append({
                 '_id': str(row['id']),
                 'url': row['url'],
                 'embed_url': row['embed_url'],
@@ -156,47 +218,12 @@ async def add_video(request):
                 'added_by': row['added_by'],
                 'views': row['views'],
                 'created_at': row['created_at'].isoformat()
-            }
-            
-            return web.json_response({
-                'success': True,
-                'video': video
             })
-    
-    except Exception as e:
-        print(f"Error adding video: {e}")
-        return web.json_response({'error': str(e)}, status=500)
-
-
-async def get_videos(request):
-    """Get all videos"""
-    try:
-        if not db_pool:
-            return web.json_response({'error': 'Database not connected'}, status=503)
         
-        async with db_pool.acquire() as conn:
-            rows = await conn.fetch('''
-                SELECT id, url, embed_url, thumbnail, added_by, views, created_at
-                FROM videos
-                ORDER BY created_at DESC
-            ''')
-            
-            videos = []
-            for row in rows:
-                videos.append({
-                    '_id': str(row['id']),
-                    'url': row['url'],
-                    'embed_url': row['embed_url'],
-                    'thumbnail': row['thumbnail'],
-                    'added_by': row['added_by'],
-                    'views': row['views'],
-                    'created_at': row['created_at'].isoformat()
-                })
-            
-            return web.json_response({
-                'success': True,
-                'videos': videos
-            })
+        return web.json_response({
+            'success': True,
+            'videos': videos
+        })
     
     except Exception as e:
         print(f"Error getting videos: {e}")
@@ -206,7 +233,8 @@ async def get_videos(request):
 async def delete_video(request):
     """Delete a video (admin only)"""
     try:
-        if not db_pool:
+        conn = get_db_connection()
+        if not conn:
             return web.json_response({'error': 'Database not connected'}, status=503)
         
         data = await request.json()
@@ -224,23 +252,30 @@ async def delete_video(request):
         except ValueError:
             return web.json_response({'error': 'Invalid video ID'}, status=400)
         
-        async with db_pool.acquire() as conn:
-            result = await conn.execute('DELETE FROM videos WHERE id = $1', video_uuid)
-            
-            if result == 'DELETE 0':
-                return web.json_response({'error': 'Video not found'}, status=404)
-            
-            return web.json_response({'success': True, 'message': 'Video deleted'})
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM videos WHERE id = %s', (video_uuid,))
+        
+        deleted_count = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        
+        if deleted_count == 0:
+            return web.json_response({'error': 'Video not found'}, status=404)
+        
+        return web.json_response({'success': True, 'message': 'Video deleted'})
     
     except Exception as e:
         print(f"Error deleting video: {e}")
+        if conn:
+            conn.rollback()
         return web.json_response({'error': str(e)}, status=500)
 
 
 async def update_views(request):
     """Update view count based on IP address (one view per IP per video)"""
     try:
-        if not db_pool:
+        conn = get_db_connection()
+        if not conn:
             return web.json_response({'error': 'Database not connected'}, status=503)
         
         data = await request.json()
@@ -257,42 +292,52 @@ async def update_views(request):
         client_ip = get_client_ip(request)
         ip_hash = hash_ip(client_ip)
         
-        async with db_pool.acquire() as conn:
-            try:
-                # Try to insert view record
-                await conn.execute('''
-                    INSERT INTO video_views (video_id, ip_hash, created_at)
-                    VALUES ($1, $2, NOW())
-                ''', video_uuid, ip_hash)
-                
-                # Increment view count
-                await conn.execute('''
-                    UPDATE videos SET views = views + 1 WHERE id = $1
-                ''', video_uuid)
-                
-                return web.json_response({
-                    'success': True,
-                    'new_view': True,
-                    'message': 'View counted'
-                })
-                
-            except asyncpg.UniqueViolationError:
-                # This IP already viewed this video
-                return web.json_response({
-                    'success': True,
-                    'new_view': False,
-                    'message': 'Already viewed from this IP'
-                })
+        cursor = conn.cursor()
+        
+        try:
+            # Try to insert view record
+            cursor.execute('''
+                INSERT INTO video_views (video_id, ip_hash, created_at)
+                VALUES (%s, %s, NOW())
+            ''', (video_uuid, ip_hash))
+            
+            # Increment view count
+            cursor.execute('''
+                UPDATE videos SET views = views + 1 WHERE id = %s
+            ''', (video_uuid,))
+            
+            conn.commit()
+            cursor.close()
+            
+            return web.json_response({
+                'success': True,
+                'new_view': True,
+                'message': 'View counted'
+            })
+            
+        except psycopg2.IntegrityError:
+            # This IP already viewed this video
+            conn.rollback()
+            cursor.close()
+            
+            return web.json_response({
+                'success': True,
+                'new_view': False,
+                'message': 'Already viewed from this IP'
+            })
     
     except Exception as e:
         print(f"Error updating views: {e}")
+        if conn:
+            conn.rollback()
         return web.json_response({'error': str(e)}, status=500)
 
 
 async def get_video_stats(request):
     """Get detailed stats for a video"""
     try:
-        if not db_pool:
+        conn = get_db_connection()
+        if not conn:
             return web.json_response({'error': 'Database not connected'}, status=503)
         
         video_id = request.match_info.get('video_id')
@@ -302,23 +347,26 @@ async def get_video_stats(request):
         except ValueError:
             return web.json_response({'error': 'Invalid video ID'}, status=400)
         
-        async with db_pool.acquire() as conn:
-            video = await conn.fetchrow('SELECT views FROM videos WHERE id = $1', video_uuid)
-            
-            if not video:
-                return web.json_response({'error': 'Video not found'}, status=404)
-            
-            unique_views = await conn.fetchval(
-                'SELECT COUNT(*) FROM video_views WHERE video_id = $1', 
-                video_uuid
-            )
-            
-            return web.json_response({
-                'success': True,
-                'video_id': video_id,
-                'unique_views': unique_views,
-                'total_views': video['views']
-            })
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cursor.execute('SELECT views FROM videos WHERE id = %s', (video_uuid,))
+        video = cursor.fetchone()
+        
+        if not video:
+            cursor.close()
+            return web.json_response({'error': 'Video not found'}, status=404)
+        
+        cursor.execute('SELECT COUNT(*) as count FROM video_views WHERE video_id = %s', (video_uuid,))
+        unique_views = cursor.fetchone()['count']
+        
+        cursor.close()
+        
+        return web.json_response({
+            'success': True,
+            'video_id': video_id,
+            'unique_views': unique_views,
+            'total_views': video['views']
+        })
     
     except Exception as e:
         print(f"Error getting video stats: {e}")
@@ -366,7 +414,7 @@ def create_app():
 
 if __name__ == '__main__':
     print("🚀 Starting Video Manager Server...")
-    print("🐘 Using PostgreSQL (Supabase)")
+    print("🐘 Using PostgreSQL with psycopg2")
     print("📊 IP-based view tracking enabled")
     print("🌐 Server will run on http://localhost:8080")
     print("-" * 50)
