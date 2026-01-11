@@ -10,12 +10,14 @@ import uuid
 
 # PostgreSQL Connection
 DB_CONFIG = {
-    'user': 'postgres',
-    'password': 'Gourav@123#',
-    'host': 'db.ntshrlzpfyvfnkkxckfs.supabase.co',
-    'port': 5432,
-    'dbname': 'postgres'
+    "user": "postgres.ntshrlzpfyvfnkkxckfs",
+    "password": "Gourav@123#",
+    "host": "aws-1-ap-south-1.pooler.supabase.com",
+    "port": 6543,
+    "dbname": "postgres",
+    "sslmode": "require"
 }
+
 
 # Admin email
 ADMIN_EMAIL = "abc@gmail.com"
