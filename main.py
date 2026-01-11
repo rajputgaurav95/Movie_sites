@@ -1,41 +1,38 @@
 from aiohttp import web
 import aiohttp_cors
-from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
+import asyncpg
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 import os
 import hashlib
+import uuid
 
-# MongoDB Connection
-MONGO_URI = "mongodb+srv://dataxbsqhjg_db_user:7cYqz2EatkTZZCII@cluster0.iyah27z.mongodb.net/"
-DB_NAME = "video_manager"
-COLLECTION_NAME = "video_collection"
-VIEWS_COLLECTION = "video_views"
+# PostgreSQL Connection
+DB_CONFIG = {
+    'user': 'postgres',
+    'password': 'Gourav@123#',
+    'host': 'db.ntshrlzpfyvfnkkxckfs.supabase.co',
+    'port': 5432,
+    'database': 'postgres'
+}
 
 # Admin email
 ADMIN_EMAIL = "abc@gmail.com"
 
-# Global MongoDB client
-client = None
-db = None
-collection = None
-views_collection = None
+# Global database pool
+db_pool = None
 
 
 def get_client_ip(request):
     """Get client IP address"""
-    # Check for X-Forwarded-For header (for proxies/load balancers)
     forwarded = request.headers.get('X-Forwarded-For')
     if forwarded:
         return forwarded.split(',')[0].strip()
     
-    # Check for X-Real-IP header
     real_ip = request.headers.get('X-Real-IP')
     if real_ip:
         return real_ip
     
-    # Fall back to remote address
     peername = request.transport.get_extra_info('peername')
     if peername:
         return peername[0]
@@ -76,48 +73,56 @@ def get_thumbnail_url(url):
 
 
 async def init_db(app):
-    """Initialize database connection"""
-    global client, db, collection, views_collection
+    """Initialize database connection pool"""
+    global db_pool
     try:
-        # MongoDB connection bypassing all SSL verification
-        client = AsyncIOMotorClient(
-            MONGO_URI,
-            tls=True,
-            tlsAllowInvalidCertificates=True,
-            tlsAllowInvalidHostnames=True,
-            serverSelectionTimeoutMS=30000,
-            connectTimeoutMS=30000,
-            socketTimeoutMS=30000,
-            retryWrites=True,
-            retryReads=True
-        )
-        db = client[DB_NAME]
-        collection = db[COLLECTION_NAME]
-        views_collection = db[VIEWS_COLLECTION]
+        db_pool = await asyncpg.create_pool(**DB_CONFIG, min_size=1, max_size=10)
+        print("✅ Connected to PostgreSQL successfully")
         
-        # Test connection
-        await client.admin.command('ping')
-        print("✅ Connected to MongoDB successfully")
-        
-        # Create indexes (wrap in try-catch to prevent startup failure)
-        try:
-            await views_collection.create_index([("video_id", 1), ("ip_hash", 1)], unique=True)
-            await views_collection.create_index("created_at")
-            print("✅ Database indexes created")
-        except Exception as idx_error:
-            print(f"⚠️ Index creation skipped: {idx_error}")
+        # Create tables if they don't exist
+        async with db_pool.acquire() as conn:
+            # Videos table
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS videos (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    url TEXT NOT NULL,
+                    embed_url TEXT,
+                    thumbnail TEXT,
+                    added_by TEXT NOT NULL,
+                    views INTEGER DEFAULT 0,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            ''')
+            
+            # Video views table
+            await conn.execute('''
+                CREATE TABLE IF NOT EXISTS video_views (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    video_id UUID REFERENCES videos(id) ON DELETE CASCADE,
+                    ip_hash TEXT NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    UNIQUE(video_id, ip_hash)
+                )
+            ''')
+            
+            # Create indexes
+            await conn.execute('CREATE INDEX IF NOT EXISTS idx_videos_created ON videos(created_at DESC)')
+            await conn.execute('CREATE INDEX IF NOT EXISTS idx_views_video ON video_views(video_id)')
+            await conn.execute('CREATE INDEX IF NOT EXISTS idx_views_created ON video_views(created_at)')
+            
+        print("✅ Database tables and indexes ready")
         
     except Exception as e:
-        print(f"⚠️ MongoDB connection failed: {e}")
+        print(f"⚠️ Database connection failed: {e}")
         print("⚠️ App will start but database operations may fail")
 
 
 async def close_db(app):
-    """Close database connection"""
-    global client
-    if client:
-        client.close()
-        print("❌ Closed MongoDB connection")
+    """Close database connection pool"""
+    global db_pool
+    if db_pool:
+        await db_pool.close()
+        print("❌ Closed PostgreSQL connection")
 
 
 async def add_video(request):
@@ -133,24 +138,27 @@ async def add_video(request):
         if not user_email:
             return web.json_response({'error': 'Email is required'}, status=400)
         
-        # Create video document
-        video_doc = {
-            'url': url,
-            'embed_url': get_embed_url(url),
-            'thumbnail': get_thumbnail_url(url),
-            'added_by': user_email,
-            'created_at': datetime.utcnow(),
-            'views': 0
-        }
-        
-        result = await collection.insert_one(video_doc)
-        video_doc['_id'] = str(result.inserted_id)
-        video_doc['created_at'] = video_doc['created_at'].isoformat()
-        
-        return web.json_response({
-            'success': True,
-            'video': video_doc
-        })
+        async with db_pool.acquire() as conn:
+            row = await conn.fetchrow('''
+                INSERT INTO videos (url, embed_url, thumbnail, added_by, views, created_at)
+                VALUES ($1, $2, $3, $4, 0, NOW())
+                RETURNING id, url, embed_url, thumbnail, added_by, views, created_at
+            ''', url, get_embed_url(url), get_thumbnail_url(url), user_email)
+            
+            video = {
+                '_id': str(row['id']),
+                'url': row['url'],
+                'embed_url': row['embed_url'],
+                'thumbnail': row['thumbnail'],
+                'added_by': row['added_by'],
+                'views': row['views'],
+                'created_at': row['created_at'].isoformat()
+            }
+            
+            return web.json_response({
+                'success': True,
+                'video': video
+            })
     
     except Exception as e:
         print(f"Error adding video: {e}")
@@ -160,18 +168,29 @@ async def add_video(request):
 async def get_videos(request):
     """Get all videos"""
     try:
-        videos = []
-        cursor = collection.find().sort('created_at', -1)
-        
-        async for doc in cursor:
-            doc['_id'] = str(doc['_id'])
-            doc['created_at'] = doc['created_at'].isoformat()
-            videos.append(doc)
-        
-        return web.json_response({
-            'success': True,
-            'videos': videos
-        })
+        async with db_pool.acquire() as conn:
+            rows = await conn.fetch('''
+                SELECT id, url, embed_url, thumbnail, added_by, views, created_at
+                FROM videos
+                ORDER BY created_at DESC
+            ''')
+            
+            videos = []
+            for row in rows:
+                videos.append({
+                    '_id': str(row['id']),
+                    'url': row['url'],
+                    'embed_url': row['embed_url'],
+                    'thumbnail': row['thumbnail'],
+                    'added_by': row['added_by'],
+                    'views': row['views'],
+                    'created_at': row['created_at'].isoformat()
+                })
+            
+            return web.json_response({
+                'success': True,
+                'videos': videos
+            })
     
     except Exception as e:
         print(f"Error getting videos: {e}")
@@ -188,24 +207,21 @@ async def delete_video(request):
         if not video_id:
             return web.json_response({'error': 'Video ID is required'}, status=400)
         
-        # Check if user is admin
         if user_email.lower() != ADMIN_EMAIL.lower():
             return web.json_response({'error': 'Unauthorized. Admin only.'}, status=403)
         
-        # Validate ObjectId
-        if not ObjectId.is_valid(video_id):
+        try:
+            video_uuid = uuid.UUID(video_id)
+        except ValueError:
             return web.json_response({'error': 'Invalid video ID'}, status=400)
         
-        # Delete video
-        result = await collection.delete_one({'_id': ObjectId(video_id)})
-        
-        # Also delete all view records for this video
-        await views_collection.delete_many({'video_id': video_id})
-        
-        if result.deleted_count > 0:
+        async with db_pool.acquire() as conn:
+            result = await conn.execute('DELETE FROM videos WHERE id = $1', video_uuid)
+            
+            if result == 'DELETE 0':
+                return web.json_response({'error': 'Video not found'}, status=404)
+            
             return web.json_response({'success': True, 'message': 'Video deleted'})
-        else:
-            return web.json_response({'error': 'Video not found'}, status=404)
     
     except Exception as e:
         print(f"Error deleting video: {e}")
@@ -221,46 +237,40 @@ async def update_views(request):
         if not video_id:
             return web.json_response({'error': 'Video ID is required'}, status=400)
         
-        # Validate ObjectId
-        if not ObjectId.is_valid(video_id):
+        try:
+            video_uuid = uuid.UUID(video_id)
+        except ValueError:
             return web.json_response({'error': 'Invalid video ID'}, status=400)
         
-        # Get client IP and hash it for privacy
         client_ip = get_client_ip(request)
         ip_hash = hash_ip(client_ip)
         
-        # Try to insert view record (will fail if IP already viewed this video)
-        view_doc = {
-            'video_id': video_id,
-            'ip_hash': ip_hash,
-            'created_at': datetime.utcnow()
-        }
-        
-        try:
-            await views_collection.insert_one(view_doc)
-            
-            # Only increment view count if this is a new view
-            await collection.update_one(
-                {'_id': ObjectId(video_id)},
-                {'$inc': {'views': 1}}
-            )
-            
-            return web.json_response({
-                'success': True,
-                'new_view': True,
-                'message': 'View counted'
-            })
-            
-        except Exception as duplicate_error:
-            # Duplicate key error means this IP already viewed this video
-            if 'duplicate key' in str(duplicate_error).lower():
+        async with db_pool.acquire() as conn:
+            try:
+                # Try to insert view record
+                await conn.execute('''
+                    INSERT INTO video_views (video_id, ip_hash, created_at)
+                    VALUES ($1, $2, NOW())
+                ''', video_uuid, ip_hash)
+                
+                # Increment view count
+                await conn.execute('''
+                    UPDATE videos SET views = views + 1 WHERE id = $1
+                ''', video_uuid)
+                
+                return web.json_response({
+                    'success': True,
+                    'new_view': True,
+                    'message': 'View counted'
+                })
+                
+            except asyncpg.UniqueViolationError:
+                # This IP already viewed this video
                 return web.json_response({
                     'success': True,
                     'new_view': False,
                     'message': 'Already viewed from this IP'
                 })
-            else:
-                raise duplicate_error
     
     except Exception as e:
         print(f"Error updating views: {e}")
@@ -272,26 +282,28 @@ async def get_video_stats(request):
     try:
         video_id = request.match_info.get('video_id')
         
-        if not ObjectId.is_valid(video_id):
+        try:
+            video_uuid = uuid.UUID(video_id)
+        except ValueError:
             return web.json_response({'error': 'Invalid video ID'}, status=400)
         
-        # Get video
-        video = await collection.find_one({'_id': ObjectId(video_id)})
-        if not video:
-            return web.json_response({'error': 'Video not found'}, status=404)
-        
-        # Get unique view count
-        unique_views = await views_collection.count_documents({'video_id': video_id})
-        
-        # Get total views from video document
-        total_views = video.get('views', 0)
-        
-        return web.json_response({
-            'success': True,
-            'video_id': video_id,
-            'unique_views': unique_views,
-            'total_views': total_views
-        })
+        async with db_pool.acquire() as conn:
+            video = await conn.fetchrow('SELECT views FROM videos WHERE id = $1', video_uuid)
+            
+            if not video:
+                return web.json_response({'error': 'Video not found'}, status=404)
+            
+            unique_views = await conn.fetchval(
+                'SELECT COUNT(*) FROM video_views WHERE video_id = $1', 
+                video_uuid
+            )
+            
+            return web.json_response({
+                'success': True,
+                'video_id': video_id,
+                'unique_views': unique_views,
+                'total_views': video['views']
+            })
     
     except Exception as e:
         print(f"Error getting video stats: {e}")
@@ -312,7 +324,6 @@ def create_app():
     """Create and configure the application"""
     app = web.Application()
     
-    # Setup CORS
     cors = aiohttp_cors.setup(app, defaults={
         "*": aiohttp_cors.ResourceOptions(
             allow_credentials=True,
@@ -322,7 +333,6 @@ def create_app():
         )
     })
     
-    # Add routes
     app.router.add_get('/', index)
     app.router.add_post('/api/videos/add', add_video)
     app.router.add_get('/api/videos', get_videos)
@@ -330,11 +340,9 @@ def create_app():
     app.router.add_post('/api/videos/view', update_views)
     app.router.add_get('/api/videos/{video_id}/stats', get_video_stats)
     
-    # Configure CORS for all routes
     for route in list(app.router.routes()):
         cors.add(route)
     
-    # Setup startup/cleanup
     app.on_startup.append(init_db)
     app.on_cleanup.append(close_db)
     
@@ -343,6 +351,7 @@ def create_app():
 
 if __name__ == '__main__':
     print("🚀 Starting Video Manager Server...")
+    print("🐘 Using PostgreSQL (Supabase)")
     print("📊 IP-based view tracking enabled")
     print("🌐 Server will run on http://localhost:8080")
     print("-" * 50)
