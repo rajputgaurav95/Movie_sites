@@ -128,6 +128,9 @@ async def close_db(app):
 async def add_video(request):
     """Add a new video URL"""
     try:
+        if not db_pool:
+            return web.json_response({'error': 'Database not connected'}, status=503)
+        
         data = await request.json()
         url = data.get('url', '').strip()
         user_email = data.get('email', '').strip()
@@ -168,6 +171,9 @@ async def add_video(request):
 async def get_videos(request):
     """Get all videos"""
     try:
+        if not db_pool:
+            return web.json_response({'error': 'Database not connected'}, status=503)
+        
         async with db_pool.acquire() as conn:
             rows = await conn.fetch('''
                 SELECT id, url, embed_url, thumbnail, added_by, views, created_at
@@ -200,6 +206,9 @@ async def get_videos(request):
 async def delete_video(request):
     """Delete a video (admin only)"""
     try:
+        if not db_pool:
+            return web.json_response({'error': 'Database not connected'}, status=503)
+        
         data = await request.json()
         video_id = data.get('video_id')
         user_email = data.get('email', '').strip()
@@ -231,6 +240,9 @@ async def delete_video(request):
 async def update_views(request):
     """Update view count based on IP address (one view per IP per video)"""
     try:
+        if not db_pool:
+            return web.json_response({'error': 'Database not connected'}, status=503)
+        
         data = await request.json()
         video_id = data.get('video_id')
         
@@ -280,6 +292,9 @@ async def update_views(request):
 async def get_video_stats(request):
     """Get detailed stats for a video"""
     try:
+        if not db_pool:
+            return web.json_response({'error': 'Database not connected'}, status=503)
+        
         video_id = request.match_info.get('video_id')
         
         try:
