@@ -1,224 +1,743 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Urls library</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Manager</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f0f2f5;
-            color: #333;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #fff;
             min-height: 100vh;
+            padding: 20px;
         }
+
         .container {
-            max-width: 800px;
+            max-width: 1600px;
             margin: 0 auto;
         }
-        h1 {
+
+        .header {
             text-align: center;
-            margin-bottom: 30px;
-            color: #1a1a1a;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s;
         }
-        .input-area {
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, #ff0080, #ff8c00, #40e0d0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 0, 128, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .add-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s;
+        }
+
+        .input-group {
             display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        input {
+            flex: 1;
+            min-width: 300px;
+            max-width: 600px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #ff0080;
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.3);
+        }
+
+        .btn {
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #ff0080, #ff8c00);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 5px 15px rgba(255, 0, 128, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 0, 128, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 30px;
+            animation: fadeIn 0.8s;
+        }
+
+        .video-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s;
+            position: relative;
+            animation: scaleIn 0.5s;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+            border-color: #ff0080;
+            box-shadow: 0 15px 40px rgba(255, 0, 128, 0.4);
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            background: #000;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .video-controls {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             gap: 10px;
-            margin-bottom: 30px;
             flex-wrap: wrap;
         }
-        input[type="text"] {
+
+        .video-url {
+            color: #40e0d0;
+            font-size: 12px;
+            word-break: break-all;
             flex: 1;
-            min-width: 280px;
-            padding: 12px 16px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            outline: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 150px;
         }
-        input[type="text"]:focus {
-            border-color: #0066ff;
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
         }
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: 500;
-            background: #0066ff;
-            color: white;
+
+        .btn-small {
+            padding: 8px 15px;
+            background: linear-gradient(45deg, #40e0d0, #00bfff);
             border: none;
             border-radius: 8px;
+            color: #fff;
             cursor: pointer;
-            transition: background 0.2s;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            white-space: nowrap;
         }
-        button:hover {
-            background: #0055dd;
+
+        .btn-small:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(64, 224, 208, 0.4);
         }
-        .url-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .url-card {
-            background: white;
-            padding: 14px 18px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.15s;
-            cursor: pointer;
-        }
-        .url-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-        }
-        .url-text {
-            flex: 1;
-            font-size: 15px;
-            color: #0066ff;
-            word-break: break-all;
-        }
+
         .delete-btn {
-            background: #ff4d4d;
-            padding: 6px 12px;
-            font-size: 14px;
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
         }
+
         .delete-btn:hover {
-            background: #e63939;
+            background: linear-gradient(45deg, #cc0000, #990000);
+            transform: scale(1.05);
         }
-        .empty-message {
-            text-align: center;
-            color: #777;
-            font-size: 18px;
-            margin-top: 60px;
+
+        .video-meta {
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .info {
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: linear-gradient(45deg, #00ff88, #00cc66);
+            color: #000;
+            border-radius: 10px;
+            font-weight: bold;
+            z-index: 2000;
+            animation: slideInRight 0.5s;
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .alert.error {
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            color: #fff;
+        }
+
+        .email-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .email-modal.active {
+            display: flex;
+        }
+
+        .email-modal-content {
+            background: linear-gradient(135deg, #302b63, #24243e);
+            border: 2px solid #ff0080;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
             text-align: center;
-            color: #555;
-            margin-top: 40px;
+            animation: zoomIn 0.3s;
+            box-shadow: 0 20px 60px rgba(255, 0, 128, 0.5);
+        }
+
+        .email-modal h2 {
+            color: #ff0080;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .email-modal p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 25px;
             font-size: 14px;
+        }
+
+        .email-modal input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .email-modal input.error {
+            border-color: #ff0000;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        .error-message {
+            color: #ff0000;
+            font-size: 13px;
+            margin-top: -15px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .email-modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .email-modal-buttons button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .confirm-delete-btn {
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+            color: #fff;
+        }
+
+        .confirm-delete-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.5);
+        }
+
+        .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .video-grid {
+                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .email-modal-content {
+                padding: 30px 20px;
+            }
+
+            .video-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-group {
+                width: 100%;
+            }
+
+            .btn-small, .delete-btn {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .add-section {
+                padding: 20px;
+            }
+        }
+
+        .loader {
+            display: none;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid #ff0080;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        .loader.active {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .zoom-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 128, 0.8);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .zoom-icon:hover {
+            background: #ff0080;
+            transform: scale(1.1);
         }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h1>My Saved Links</h1>
-
-        <div class="input-area">
-            <input type="text" id="urlInput" placeholder="Paste URL here[](https://...)" />
-            <button id="saveBtn">Save</button>
+        <div class="header">
+            <h1>🎮 VIDEO MANAGER 🎮</h1>
+            <p>Add & Watch Videos</p>
         </div>
 
-        <div class="url-list" id="urlList"></div>
+        <div class="add-section">
+            <div class="input-group">
+                <input type="url" id="videoUrl" placeholder="Paste YouTube URL here..." required autocomplete="off">
+                <button class="btn" onclick="addVideo()">PUT URL</button>
+            </div>
+        </div>
 
-        <div class="info">
-            Links open in new tab • Saved in your browser • Works even after closing tab
+        <div class="loader" id="loader"></div>
+        <div class="video-grid" id="videoGrid"></div>
+    </div>
+
+    <div class="email-modal" id="emailModal">
+        <div class="email-modal-content">
+            <h2>🔒 Delete Video</h2>
+            <p>Enter email</p>
+            <input type="email" id="deleteEmail" placeholder="Enter email" autocomplete="off">
+            <div class="error-message" id="errorMessage">Invalid email or unauthorized</div>
+            <div class="email-modal-buttons">
+                <button class="confirm-delete-btn" onclick="confirmDelete()">DELETE</button>
+                <button class="cancel-btn" onclick="closeEmailModal()">CANCEL</button>
+            </div>
         </div>
     </div>
 
     <script>
-        const urlInput = document.getElementById('urlInput');
-        const saveBtn = document.getElementById('saveBtn');
-        const urlList = document.getElementById('urlList');
+        const API_BASE = window.location.origin;
+        let currentDeleteVideoId = null;
 
-        // Load saved URLs
-        function loadUrls() {
-            const saved = JSON.parse(localStorage.getItem('mySavedUrls') || '[]');
-            urlList.innerHTML = '';
-
-            if (saved.length === 0) {
-                urlList.innerHTML = '<div class="empty-message">No links saved yet...</div>';
-                return;
-            }
-
-            saved.forEach((url, index) => {
-                const card = document.createElement('div');
-                card.className = 'url-card';
-
-                const text = document.createElement('div');
-                text.className = 'url-text';
-                text.textContent = url;
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    deleteUrl(index);
-                };
-
-                card.appendChild(text);
-                card.appendChild(deleteBtn);
-
-                // Open in new tab when clicking card (except delete button)
-                card.onclick = () => {
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                };
-
-                urlList.appendChild(card);
-            });
-        }
-
-        // Save new URL
-        function saveUrl() {
-            let url = urlInput.value.trim();
-
-            if (!url) return;
-
-            // Auto add https:// if user forgot
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                url = 'https://' + url;
-            }
-
-            if (!isValidUrl(url)) {
-                alert("Please enter a valid URL");
-                return;
-            }
-
-            const saved = JSON.parse(localStorage.getItem('mySavedUrls') || '[]');
-            saved.push(url);
-            localStorage.setItem('mySavedUrls', JSON.stringify(saved));
-
-            urlInput.value = '';
-            loadUrls();
-        }
-
-        // Delete URL
-        function deleteUrl(index) {
-            const saved = JSON.parse(localStorage.getItem('mySavedUrls') || '[]');
-            saved.splice(index, 1);
-            localStorage.setItem('mySavedUrls', JSON.stringify(saved));
-            loadUrls();
-        }
-
-        // Basic URL validation
-        function isValidUrl(string) {
+        async function loadVideos() {
+            const loader = document.getElementById('loader');
+            const grid = document.getElementById('videoGrid');
+            
             try {
-                new URL(string);
-                return true;
-            } catch {
-                return false;
+                loader.classList.add('active');
+                const response = await fetch(`${API_BASE}/api/videos`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    grid.innerHTML = '';
+                    data.videos.forEach(video => {
+                        const card = createVideoCard(video);
+                        grid.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                showAlert('Error loading videos', true);
+            } finally {
+                loader.classList.remove('active');
             }
         }
 
-        // Event listeners
-        saveBtn.addEventListener('click', saveUrl);
+        function createVideoCard(video) {
+            const card = document.createElement('div');
+            card.className = 'video-card';
+            
+            card.innerHTML = `
+                <div class="video-wrapper">
+                    <span class="zoom-icon" onclick="openInNewTab('${video.url}')">🔍 ZOOM</span>
+                    <iframe 
+                        src="${video.embed_url}" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <div class="video-controls">
+                    <div class="video-url" title="${video.url}">${video.url}</div>
+                    <div class="btn-group">
+                        <button class="btn-small" onclick="openInNewTab('${video.url}')">OPEN</button>
+                        <button class="delete-btn" onclick="openDeleteModal('${video._id}')">DELETE</button>
+                    </div>
+                </div>
+                <div class="video-meta">
+                    <span>👁️ ${video.views || 0} views</span>
+                    <span>👤 ${video.added_by}</span>
+                </div>
+            `;
+            
+            return card;
+        }
 
-        urlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                saveUrl();
+        async function addVideo() {
+            const urlInput = document.getElementById('videoUrl');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showAlert('Please enter URL', true);
+                return;
             }
+            
+            const tempEmail = 'user@example.com';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/videos/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, email: tempEmail })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('✅ Video added successfully!');
+                    urlInput.value = '';
+                    loadVideos();
+                } else {
+                    showAlert(data.error || 'Failed to add video', true);
+                }
+            } catch (error) {
+                showAlert('Error adding video', true);
+            }
+        }
+
+        function openDeleteModal(videoId) {
+            currentDeleteVideoId = videoId;
+            const modal = document.getElementById('emailModal');
+            const emailInput = document.getElementById('deleteEmail');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            emailInput.value = '';
+            emailInput.classList.remove('error');
+            errorMsg.classList.remove('show');
+            
+            modal.classList.add('active');
+            emailInput.focus();
+        }
+
+        function closeEmailModal() {
+            const modal = document.getElementById('emailModal');
+            const emailInput = document.getElementById('deleteEmail');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            modal.classList.remove('active');
+            currentDeleteVideoId = null;
+            emailInput.value = '';
+            emailInput.classList.remove('error');
+            errorMsg.classList.remove('show');
+        }
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        async function confirmDelete() {
+            const emailInput = document.getElementById('deleteEmail');
+            const errorMsg = document.getElementById('errorMessage');
+            const email = emailInput.value.trim();
+            
+            // Reset error state
+            emailInput.classList.remove('error');
+            errorMsg.classList.remove('show');
+            
+            if (!email) {
+                emailInput.classList.add('error');
+                errorMsg.textContent = 'Please enter email';
+                errorMsg.classList.add('show');
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                emailInput.classList.add('error');
+                errorMsg.textContent = 'Invalid email format';
+                errorMsg.classList.add('show');
+                return;
+            }
+            
+            if (!currentDeleteVideoId) {
+                showAlert('No video selected', true);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/videos/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        video_id: currentDeleteVideoId, 
+                        email: email 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('✅ Video deleted successfully!');
+                    closeEmailModal();
+                    loadVideos();
+                } else {
+                    // Show error in modal
+                    emailInput.classList.add('error');
+                    errorMsg.textContent = data.error || 'Unauthorized. Admin only.';
+                    errorMsg.classList.add('show');
+                    
+                    // Also show alert
+                    showAlert(data.error || 'Failed to delete', true);
+                    
+                    // Close modal after 2 seconds
+                    setTimeout(() => {
+                        closeEmailModal();
+                    }, 2000);
+                }
+            } catch (error) {
+                emailInput.classList.add('error');
+                errorMsg.textContent = 'Error deleting video';
+                errorMsg.classList.add('show');
+                showAlert('Error deleting video', true);
+                
+                // Close modal after 2 seconds
+                setTimeout(() => {
+                    closeEmailModal();
+                }, 2000);
+            }
+        }
+
+        function openInNewTab(url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
+
+        function showAlert(message, isError = false) {
+            const alert = document.createElement('div');
+            alert.className = `alert ${isError ? 'error' : ''}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        document.getElementById('videoUrl').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addVideo();
         });
 
-        // Load when page opens
-        loadUrls();
+        document.getElementById('deleteEmail').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') confirmDelete();
+        });
+
+        document.getElementById('deleteEmail').addEventListener('input', () => {
+            const emailInput = document.getElementById('deleteEmail');
+            const errorMsg = document.getElementById('errorMessage');
+            emailInput.classList.remove('error');
+            errorMsg.classList.remove('show');
+        });
+
+        document.getElementById('emailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'emailModal') closeEmailModal();
+        });
+
+        loadVideos();
     </script>
 </body>
 </html>
