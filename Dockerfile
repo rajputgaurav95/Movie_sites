@@ -1,14 +1,21 @@
-# Use lightweight nginx image
-FROM nginx:alpine
+# Use Python 3.11 slim image
+FROM python:3.11-slim
 
-# Remove default nginx website
-RUN rm -rf /usr/share/nginx/html/*
+# Set working directory
+WORKDIR /app
 
-# Copy your HTML file to nginx web root
-COPY index.html /usr/share/nginx/html/index.html
+# Copy requirements first for better caching
+COPY requirements.txt .
 
-# Expose port 80
-EXPOSE 80
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Copy application files
+COPY main.py .
+COPY index.html .
+
+# Expose port 8080
+EXPOSE 8080
+
+# Run the application
+CMD ["python3", "main.py"]
