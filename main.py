@@ -234,6 +234,7 @@ async def get_videos(request):
 
 async def delete_video(request):
     """Delete a video (admin only)"""
+    conn = None
     try:
         conn = get_db_connection()
         if not conn:
@@ -255,7 +256,8 @@ async def delete_video(request):
             return web.json_response({'error': 'Invalid video ID'}, status=400)
         
         cursor = conn.cursor()
-        cursor.execute('DELETE FROM videos WHERE id = %s', (video_uuid,))
+        # Convert UUID to string when passing to psycopg2
+        cursor.execute('DELETE FROM videos WHERE id = %s', (str(video_uuid),))
         
         deleted_count = cursor.rowcount
         conn.commit()
@@ -275,6 +277,7 @@ async def delete_video(request):
 
 async def update_views(request):
     """Update view count based on IP address (one view per IP per video)"""
+    conn = None
     try:
         conn = get_db_connection()
         if not conn:
@@ -297,16 +300,16 @@ async def update_views(request):
         cursor = conn.cursor()
         
         try:
-            # Try to insert view record
+            # Try to insert view record - convert UUID to string
             cursor.execute('''
                 INSERT INTO video_views (video_id, ip_hash, created_at)
                 VALUES (%s, %s, NOW())
-            ''', (video_uuid, ip_hash))
+            ''', (str(video_uuid), ip_hash))
             
             # Increment view count
             cursor.execute('''
                 UPDATE videos SET views = views + 1 WHERE id = %s
-            ''', (video_uuid,))
+            ''', (str(video_uuid),))
             
             conn.commit()
             cursor.close()
@@ -351,14 +354,15 @@ async def get_video_stats(request):
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        cursor.execute('SELECT views FROM videos WHERE id = %s', (video_uuid,))
+        # Convert UUID to string when passing to psycopg2
+        cursor.execute('SELECT views FROM videos WHERE id = %s', (str(video_uuid),))
         video = cursor.fetchone()
         
         if not video:
             cursor.close()
             return web.json_response({'error': 'Video not found'}, status=404)
         
-        cursor.execute('SELECT COUNT(*) as count FROM video_views WHERE video_id = %s', (video_uuid,))
+        cursor.execute('SELECT COUNT(*) as count FROM video_views WHERE video_id = %s', (str(video_uuid),))
         unique_views = cursor.fetchone()['count']
         
         cursor.close()
