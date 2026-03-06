@@ -15,7 +15,7 @@ COPY main.py .
 COPY index.html .
 
 # Expose port 8080
-EXPOSE 8080
+EXPOSE 9000
 
 # Run the application
 CMD ["python3", "main.py"]
