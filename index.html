@@ -1,743 +1,864 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Manager</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Manager v3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#fff;min-height:100vh}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #fff;
-            min-height: 100vh;
-            padding: 20px;
-        }
+/* ── NAV ── */
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(0,0,0,.45);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.1);position:sticky;top:0;z-index:200;flex-wrap:wrap;gap:10px}
+.nav-brand{font-size:1.3em;font-weight:800;background:linear-gradient(45deg,#ff0080,#ff8c00,#40e0d0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.nav-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.nav-tab{padding:8px 18px;border-radius:30px;border:2px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.65);cursor:pointer;font-size:13px;font-weight:600;transition:all .22s;letter-spacing:.3px}
+.nav-tab:hover{border-color:#ff0080;color:#fff}
+.nav-tab.active{background:linear-gradient(45deg,#ff0080,#ff8c00);border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(255,0,128,.4)}
+.nav-user{display:flex;align-items:center;gap:10px}
+.user-chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:6px 14px;font-size:13px;display:flex;align-items:center;gap:7px}
+.user-chip .dot{width:8px;height:8px;border-radius:50%;background:#00ff88;flex-shrink:0}
+.btn-login{padding:8px 18px;background:linear-gradient(45deg,#ff0080,#ff8c00);border:none;border-radius:20px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;transition:all .22s}
+.btn-login:hover{transform:scale(1.05);box-shadow:0 4px 14px rgba(255,0,128,.4)}
 
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
+/* ── PAGES ── */
+.page{display:none;padding:24px 28px;max-width:1600px;margin:0 auto;animation:fadeIn .35s}
+.page.active{display:block}
+.section-head{margin-bottom:24px}
+.section-head h2{font-size:1.8em;font-weight:800;background:linear-gradient(45deg,#ff0080,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}
+.section-head p{color:rgba(255,255,255,.45);font-size:13px}
 
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            animation: fadeInDown 0.8s;
-        }
+/* ── GLASS CARD ── */
+.glass{background:rgba(255,255,255,.05);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:18px;padding:24px}
 
-        .header h1 {
-            font-size: 3em;
-            background: linear-gradient(45deg, #ff0080, #ff8c00, #40e0d0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(255, 0, 128, 0.5);
-            margin-bottom: 10px;
-        }
+/* ── ADD FORM ── */
+.input-row{display:flex;gap:10px;flex-wrap:wrap}
+.input-row input{flex:1;min-width:240px;padding:13px 16px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.14);border-radius:10px;color:#fff;font-size:15px;transition:all .28s}
+.input-row input::placeholder{color:rgba(255,255,255,.38)}
+.input-row input:focus{outline:none;border-color:#ff0080;box-shadow:0 0 16px rgba(255,0,128,.2)}
+.btn{padding:13px 28px;background:linear-gradient(45deg,#ff0080,#ff8c00);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .28s;letter-spacing:.4px;white-space:nowrap}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(255,0,128,.38)}
 
-        .add-section {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 40px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            animation: fadeInUp 0.8s;
-        }
+/* ── LIB FILTER TABS ── */
+.lib-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.lib-tab{padding:7px 18px;border-radius:20px;border:2px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.6);cursor:pointer;font-size:13px;font-weight:600;transition:all .22s}
+.lib-tab:hover{border-color:#40e0d0;color:#fff}
+.lib-tab.active{background:linear-gradient(45deg,#40e0d0,#00bfff);border-color:transparent;color:#000;box-shadow:0 4px 12px rgba(64,224,208,.3)}
 
-        .input-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
+/* ── VIDEO GRID ── */
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:22px}
+.video-card{background:rgba(255,255,255,.05);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;transition:all .28s;position:relative}
+.video-card:hover{transform:translateY(-4px);border-color:#ff0080;box-shadow:0 14px 36px rgba(255,0,128,.28)}
+.video-wrapper{position:relative;width:100%;padding-bottom:56.25%;background:#000}
+.video-wrapper iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.tag-new{position:absolute;top:9px;left:9px;background:linear-gradient(45deg,#00ff88,#00cc66);color:#000;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;z-index:10;letter-spacing:.4px;box-shadow:0 3px 10px rgba(0,255,136,.4);animation:pulse 1.5s infinite}
+.zoom-icon{position:absolute;top:9px;right:9px;background:rgba(255,0,128,.8);padding:5px 11px;border-radius:7px;cursor:pointer;z-index:10;font-size:12px;transition:all .28s}
+.zoom-icon:hover{background:#ff0080;transform:scale(1.1)}
+.video-info{padding:13px}
+.video-added-by{font-size:11px;color:#40e0d0;font-weight:700;margin-bottom:3px}
+.video-url{font-size:11px;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:9px}
+.video-bottom{display:flex;justify-content:space-between;align-items:center;gap:7px;flex-wrap:wrap}
+.video-views{font-size:11px;color:rgba(255,255,255,.55)}
+.btn-row{display:flex;gap:7px}
+.btn-sm{padding:5px 12px;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;transition:all .22s}
+.btn-open{background:linear-gradient(45deg,#40e0d0,#00bfff);color:#fff}
+.btn-open:hover{transform:scale(1.06)}
+.btn-del{background:linear-gradient(45deg,#ff0000,#cc0000);color:#fff}
+.btn-del:hover{transform:scale(1.06)}
+.btn-watch{background:linear-gradient(45deg,#ff8c00,#ff0080);color:#fff}
+.btn-watch:hover{transform:scale(1.06)}
+.lib-badge{display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:2px 7px;font-size:10px;color:rgba(255,255,255,.55);margin-bottom:5px}
 
-        input {
-            flex: 1;
-            min-width: 300px;
-            max-width: 600px;
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: #fff;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:30px}
+.stat-card{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;cursor:pointer;transition:all .28s}
+.stat-card:hover,.stat-card.selected{border-color:#ff8c00;box-shadow:0 8px 24px rgba(255,140,0,.22)}
+.stat-card.selected{background:rgba(255,140,0,.07)}
+.stat-card .uname{font-size:1em;font-weight:700;color:#ff8c00;margin-bottom:3px}
+.stat-card .uemail{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:12px}
+.stat-row{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px}
+.stat-row span:first-child{color:rgba(255,255,255,.55)}
+.stat-row span:last-child{font-weight:700;color:#40e0d0}
+.progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:8px;overflow:hidden;margin-top:9px}
+.progress-fill{height:100%;background:linear-gradient(45deg,#ff0080,#ff8c00);border-radius:8px;transition:width .55s}
 
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
+/* ── CHARTS ── */
+.charts-section{margin-bottom:32px}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.charts-row{grid-template-columns:1fr}}
+.chart-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:20px}
+.chart-card h3{font-size:14px;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.chart-card h3 span{font-size:11px;color:rgba(255,255,255,.4);font-weight:400}
+.chart-wrap{position:relative;height:260px}
+.chart-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.chart-controls label{font-size:12px;color:rgba(255,255,255,.55)}
+.chart-controls select{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;padding:6px 12px;font-size:12px;cursor:pointer}
+.chart-controls select option{background:#302b63}
+.chart-controls button{padding:6px 14px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .22s}
+.ctrl-btn-active{background:linear-gradient(45deg,#ff0080,#ff8c00);color:#fff}
+.ctrl-btn{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)!important}
+.ctrl-btn:hover{background:rgba(255,255,255,.18);color:#fff}
 
-        input:focus {
-            outline: none;
-            border-color: #ff0080;
-            box-shadow: 0 0 20px rgba(255, 0, 128, 0.3);
-        }
+/* ── LEGEND ── */
+.legend-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.7)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
-        .btn {
-            padding: 15px 40px;
-            background: linear-gradient(45deg, #ff0080, #ff8c00);
-            border: none;
-            border-radius: 10px;
-            color: #fff;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 5px 15px rgba(255, 0, 128, 0.3);
-        }
+/* ── SESSIONS FEED ── */
+.sessions-section{margin-top:28px}
+.sessions-section h3{font-size:1.1em;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:16px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)}
+.session-item{display:flex;align-items:center;gap:13px;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);margin-bottom:8px;transition:all .22s}
+.session-item:hover{background:rgba(255,255,255,.07)}
+.session-thumb{width:64px;height:38px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#111}
+.session-info{flex:1;min-width:0}
+.session-user{font-size:12px;font-weight:700;color:#ff8c00}
+.session-url{font-size:11px;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.session-time-info{text-align:right;flex-shrink:0}
+.time-badge{background:rgba(255,140,0,.15);border:1px solid rgba(255,140,0,.3);color:#ff8c00;padding:3px 9px;border-radius:9px;font-weight:700;font-size:11px;white-space:nowrap;display:inline-block;margin-bottom:3px}
+.session-when{font-size:10px;color:rgba(255,255,255,.35)}
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 0, 128, 0.5);
-        }
+/* ── TABLE ── */
+.history-section{margin-top:28px}
+.history-section h3{font-size:1.1em;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:16px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)}
+.history-table{width:100%;border-collapse:collapse}
+.history-table th{text-align:left;padding:10px 14px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.history-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;vertical-align:middle}
+.history-table tr:hover td{background:rgba(255,255,255,.04)}
+.thumb-sm{width:60px;height:34px;border-radius:5px;object-fit:cover;background:#111}
 
-        .btn:active {
-            transform: translateY(0);
-        }
+/* ── MODALS ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:3000;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:linear-gradient(135deg,#302b63,#24243e);border:2px solid #ff0080;border-radius:18px;padding:36px;max-width:460px;width:90%;text-align:center;animation:zoomIn .28s;box-shadow:0 20px 55px rgba(255,0,128,.38)}
+.modal h2{color:#ff0080;margin-bottom:12px;font-size:1.4em}
+.modal p{color:rgba(255,255,255,.65);margin-bottom:20px;font-size:13px}
+.modal input{width:100%;padding:12px 15px;margin-bottom:8px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.18);border-radius:10px;color:#fff;font-size:14px}
+.modal input:focus{outline:none;border-color:#ff0080}
+.modal-err{color:#ff4444;font-size:12px;margin-bottom:12px;display:none}
+.modal-err.show{display:block}
+.modal-btns{display:flex;gap:10px;justify-content:center}
+.modal-btns button{padding:10px 26px;border:none;border-radius:9px;font-weight:700;cursor:pointer;transition:all .22s;font-size:13px}
+.btn-confirm-del{background:linear-gradient(45deg,#ff0000,#cc0000);color:#fff}
+.btn-cancel{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.22)!important}
+.btn-cancel:hover{background:rgba(255,255,255,.18)}
+.modal-login{border-color:#40e0d0;box-shadow:0 20px 55px rgba(64,224,208,.3)}
+.modal-login h2{color:#40e0d0}
+.modal-login input:focus{border-color:#40e0d0}
+.btn-confirm-login{background:linear-gradient(45deg,#40e0d0,#00bfff);color:#000}
 
-        .video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 30px;
-            animation: fadeIn 0.8s;
-        }
+/* ── WATCH MODAL ── */
+.modal-watch{border-color:#ff8c00;box-shadow:0 20px 55px rgba(255,140,0,.28);max-width:560px}
+.modal-watch h2{color:#ff8c00}
+.watch-video-frame{width:100%;aspect-ratio:16/9;border-radius:9px;margin-bottom:14px;border:none}
+.watch-timer{font-size:2.8em;font-weight:800;color:#ff8c00;margin:14px 0;font-variant-numeric:tabular-nums;letter-spacing:2px}
+.btn-stop{background:linear-gradient(45deg,#ff8c00,#ff0080);color:#fff;padding:11px 30px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;transition:all .28s}
+.btn-stop:hover{transform:scale(1.05)}
 
-        .video-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            overflow: hidden;
-            transition: all 0.3s;
-            position: relative;
-            animation: scaleIn 0.5s;
-        }
+/* ── MISC ── */
+.toast{position:fixed;top:20px;right:20px;padding:13px 22px;border-radius:11px;font-weight:700;z-index:9999;animation:slideInRight .38s;box-shadow:0 6px 18px rgba(0,0,0,.4);font-size:13px;max-width:300px}
+.toast.ok{background:linear-gradient(45deg,#00ff88,#00cc66);color:#000}
+.toast.err{background:linear-gradient(45deg,#ff3333,#cc0000);color:#fff}
+.loader{display:none;width:36px;height:36px;border:4px solid rgba(255,255,255,.1);border-top:4px solid #ff0080;border-radius:50%;animation:spin 1s linear infinite;margin:28px auto}
+.loader.active{display:block}
+.empty{text-align:center;padding:50px 20px;color:rgba(255,255,255,.3);font-size:14px}
 
-        .video-card:hover {
-            transform: translateY(-5px);
-            border-color: #ff0080;
-            box-shadow: 0 15px 40px rgba(255, 0, 128, 0.4);
-        }
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes zoomIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+@keyframes slideInRight{from{transform:translateX(120%)}to{transform:translateX(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 3px 8px rgba(0,255,136,.35)}50%{box-shadow:0 3px 16px rgba(0,255,136,.75)}}
 
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
-            background: #000;
-        }
-
-        .video-wrapper iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .video-controls {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .video-url {
-            color: #40e0d0;
-            font-size: 12px;
-            word-break: break-all;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            min-width: 150px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-small {
-            padding: 8px 15px;
-            background: linear-gradient(45deg, #40e0d0, #00bfff);
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-
-        .btn-small:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(64, 224, 208, 0.4);
-        }
-
-        .delete-btn {
-            background: linear-gradient(45deg, #ff0000, #cc0000);
-            padding: 8px 15px;
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .delete-btn:hover {
-            background: linear-gradient(45deg, #cc0000, #990000);
-            transform: scale(1.05);
-        }
-
-        .video-meta {
-            padding: 10px 15px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.6);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .alert {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            background: linear-gradient(45deg, #00ff88, #00cc66);
-            color: #000;
-            border-radius: 10px;
-            font-weight: bold;
-            z-index: 2000;
-            animation: slideInRight 0.5s;
-            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
-        }
-
-        .alert.error {
-            background: linear-gradient(45deg, #ff0000, #cc0000);
-            color: #fff;
-        }
-
-        .email-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 3000;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s;
-        }
-
-        .email-modal.active {
-            display: flex;
-        }
-
-        .email-modal-content {
-            background: linear-gradient(135deg, #302b63, #24243e);
-            border: 2px solid #ff0080;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            animation: zoomIn 0.3s;
-            box-shadow: 0 20px 60px rgba(255, 0, 128, 0.5);
-        }
-
-        .email-modal h2 {
-            color: #ff0080;
-            margin-bottom: 20px;
-            font-size: 24px;
-        }
-
-        .email-modal p {
-            color: rgba(255, 255, 255, 0.8);
-            margin-bottom: 25px;
-            font-size: 14px;
-        }
-
-        .email-modal input {
-            width: 100%;
-            padding: 15px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            color: #fff;
-            font-size: 16px;
-        }
-
-        .email-modal input.error {
-            border-color: #ff0000;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
-        }
-
-        .error-message {
-            color: #ff0000;
-            font-size: 13px;
-            margin-top: -15px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        .email-modal-buttons {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .email-modal-buttons button {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-
-        .confirm-delete-btn {
-            background: linear-gradient(45deg, #ff0000, #cc0000);
-            color: #fff;
-        }
-
-        .confirm-delete-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(255, 0, 0, 0.5);
-        }
-
-        .cancel-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .cancel-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes scaleIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        @keyframes zoomIn {
-            from {
-                opacity: 0;
-                transform: scale(0.8);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-            }
-            to {
-                transform: translateX(0);
-            }
-        }
-
-        @media (max-width: 1200px) {
-            .video-grid {
-                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            }
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2em;
-            }
-
-            .input-group {
-                flex-direction: column;
-            }
-
-            .video-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .email-modal-content {
-                padding: 30px 20px;
-            }
-
-            .video-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .btn-group {
-                width: 100%;
-            }
-
-            .btn-small, .delete-btn {
-                flex: 1;
-            }
-        }
-
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-
-            .add-section {
-                padding: 20px;
-            }
-        }
-
-        .loader {
-            display: none;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top: 4px solid #ff0080;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        .loader.active {
-            display: block;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .zoom-icon {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(255, 0, 128, 0.8);
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            z-index: 10;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .zoom-icon:hover {
-            background: #ff0080;
-            transform: scale(1.1);
-        }
-    </style>
+@media(max-width:768px){
+  .navbar{padding:11px 14px}
+  .page{padding:14px}
+  .video-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr}
+  .history-table th:nth-child(3),.history-table td:nth-child(3){display:none}
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎮 VIDEO MANAGER 🎮</h1>
-            <p>Add & Watch Videos</p>
-        </div>
 
-        <div class="add-section">
-            <div class="input-group">
-                <input type="url" id="videoUrl" placeholder="Paste YouTube URL here..." required autocomplete="off">
-                <button class="btn" onclick="addVideo()">PUT URL</button>
-            </div>
-        </div>
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-brand">🎮 VIDEO MANAGER</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('library')">📚 My Library</button>
+    <button class="nav-tab" onclick="showPage('allvideos')">🌐 All Videos</button>
+    <button class="nav-tab" onclick="showPage('history')">📊 Analytics</button>
+  </div>
+  <div class="nav-user" id="navUser">
+    <button class="btn-login" onclick="openLoginModal()">Login / Register</button>
+  </div>
+</nav>
 
-        <div class="loader" id="loader"></div>
-        <div class="video-grid" id="videoGrid"></div>
+<!-- ══ PAGE: LIBRARY ══ -->
+<div class="page active" id="page-library">
+  <div class="section-head"><h2>📚 My Library</h2><p>Your personal video collection</p></div>
+  <div class="glass" style="margin-bottom:22px">
+    <div id="loginPrompt" style="text-align:center;padding:18px">
+      <p style="color:rgba(255,255,255,.55);margin-bottom:14px">Login or create your library to add videos</p>
+      <button class="btn" onclick="openLoginModal()">Create / Enter Library</button>
+    </div>
+    <div id="addForm" style="display:none">
+      <div class="input-row">
+        <input type="url" id="videoUrl" placeholder="Paste YouTube URL here..." autocomplete="off">
+        <button class="btn" onclick="addVideo()">Add Video</button>
+      </div>
+    </div>
+  </div>
+  <div class="loader" id="libLoader"></div>
+  <div class="video-grid" id="libGrid"></div>
+</div>
+
+<!-- ══ PAGE: ALL VIDEOS ══ -->
+<div class="page" id="page-allvideos">
+  <div class="section-head"><h2>🌐 All Videos</h2><p>Every video across all libraries</p></div>
+  <div class="lib-tabs" id="libFilterTabs">
+    <button class="lib-tab active" onclick="filterByLib(null,this)">All</button>
+  </div>
+  <div class="loader" id="allLoader"></div>
+  <div class="video-grid" id="allGrid"></div>
+</div>
+
+<!-- ══ PAGE: ANALYTICS ══ -->
+<div class="page" id="page-history">
+  <div class="section-head"><h2>📊 Activity Analytics</h2><p>Day-wise · Hour-wise · Per-user watch sessions</p></div>
+  <div class="loader" id="histLoader"></div>
+
+  <!-- user stat cards -->
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- chart controls -->
+  <div id="chartsArea" style="display:none">
+    <div class="chart-controls">
+      <label>User filter:</label>
+      <select id="chartUserFilter" onchange="reloadCharts()">
+        <option value="">All Users</option>
+      </select>
+      <label style="margin-left:10px">Range:</label>
+      <button class="ctrl-btn ctrl-btn-active" id="btn7" onclick="setDays(7,this)">7 days</button>
+      <button class="ctrl-btn" id="btn30" onclick="setDays(30,this)">30 days</button>
+      <button class="ctrl-btn" id="btn90" onclick="setDays(90,this)">90 days</button>
+      <div id="legendRow" class="legend-row" style="margin:0 0 0 12px"></div>
     </div>
 
-    <div class="email-modal" id="emailModal">
-        <div class="email-modal-content">
-            <h2>🔒 Delete Video</h2>
-            <p>Enter email</p>
-            <input type="email" id="deleteEmail" placeholder="Enter email" autocomplete="off">
-            <div class="error-message" id="errorMessage">Invalid email or unauthorized</div>
-            <div class="email-modal-buttons">
-                <button class="confirm-delete-btn" onclick="confirmDelete()">DELETE</button>
-                <button class="cancel-btn" onclick="closeEmailModal()">CANCEL</button>
-            </div>
-        </div>
+    <div class="charts-row">
+      <!-- Day-wise bar -->
+      <div class="chart-card">
+        <h3>📅 Daily Watch Time (hours) <span id="barSubtitle"></span></h3>
+        <div class="chart-wrap"><canvas id="chartBar"></canvas></div>
+      </div>
+      <!-- Hour-wise line -->
+      <div class="chart-card">
+        <h3>🕐 Activity by Hour of Day <span id="lineSubtitle"></span></h3>
+        <div class="chart-wrap"><canvas id="chartLine"></canvas></div>
+      </div>
     </div>
 
-    <script>
-        const API_BASE = window.location.origin;
-        let currentDeleteVideoId = null;
+    <!-- Sessions feed -->
+    <div class="sessions-section">
+      <h3>⏱ Recent Watch Sessions</h3>
+      <div id="sessionsFeed"></div>
+    </div>
 
-        async function loadVideos() {
-            const loader = document.getElementById('loader');
-            const grid = document.getElementById('videoGrid');
-            
-            try {
-                loader.classList.add('active');
-                const response = await fetch(`${API_BASE}/api/videos`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    grid.innerHTML = '';
-                    data.videos.forEach(video => {
-                        const card = createVideoCard(video);
-                        grid.appendChild(card);
-                    });
-                }
-            } catch (error) {
-                showAlert('Error loading videos', true);
-            } finally {
-                loader.classList.remove('active');
-            }
-        }
+    <!-- Video detail table -->
+    <div class="history-section" id="histDetail">
+      <h3>🎬 Video Watch Log</h3>
+      <div style="overflow-x:auto">
+        <table class="history-table">
+          <thead><tr>
+            <th>Thumb</th><th>User</th><th>Video</th>
+            <th>Time</th><th>Sessions</th><th>Last Seen</th>
+          </tr></thead>
+          <tbody id="histTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 
-        function createVideoCard(video) {
-            const card = document.createElement('div');
-            card.className = 'video-card';
-            
-            card.innerHTML = `
-                <div class="video-wrapper">
-                    <span class="zoom-icon" onclick="openInNewTab('${video.url}')">🔍 ZOOM</span>
-                    <iframe 
-                        src="${video.embed_url}" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen>
-                    </iframe>
-                </div>
-                <div class="video-controls">
-                    <div class="video-url" title="${video.url}">${video.url}</div>
-                    <div class="btn-group">
-                        <button class="btn-small" onclick="openInNewTab('${video.url}')">OPEN</button>
-                        <button class="delete-btn" onclick="openDeleteModal('${video._id}')">DELETE</button>
-                    </div>
-                </div>
-                <div class="video-meta">
-                    <span>👁️ ${video.views || 0} views</span>
-                    <span>👤 ${video.added_by}</span>
-                </div>
-            `;
-            
-            return card;
-        }
+<!-- MODAL: LOGIN -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal modal-login">
+    <h2>👤 Your Library</h2>
+    <p>Enter your name and email to create or access your personal library</p>
+    <input type="text" id="loginName" placeholder="Your name" autocomplete="off">
+    <input type="email" id="loginEmail" placeholder="Your email" autocomplete="off" style="margin-top:9px">
+    <div class="modal-err" id="loginErr"></div>
+    <div class="modal-btns">
+      <button class="btn-confirm-login" onclick="confirmLogin()">Enter Library</button>
+      <button class="btn-cancel" onclick="closeModal('loginModal')">Cancel</button>
+    </div>
+  </div>
+</div>
 
-        async function addVideo() {
-            const urlInput = document.getElementById('videoUrl');
-            const url = urlInput.value.trim();
-            
-            if (!url) {
-                showAlert('Please enter URL', true);
-                return;
-            }
-            
-            const tempEmail = 'user@example.com';
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/videos/add`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, email: tempEmail })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showAlert('✅ Video added successfully!');
-                    urlInput.value = '';
-                    loadVideos();
-                } else {
-                    showAlert(data.error || 'Failed to add video', true);
-                }
-            } catch (error) {
-                showAlert('Error adding video', true);
-            }
-        }
+<!-- MODAL: DELETE -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h2>🗑️ Delete Video</h2>
+    <p>Enter admin email to confirm</p>
+    <input type="email" id="deleteEmail" placeholder="Admin email" autocomplete="off">
+    <div class="modal-err" id="deleteErr"></div>
+    <div class="modal-btns">
+      <button class="btn-confirm-del" onclick="confirmDelete()">Delete</button>
+      <button class="btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
+    </div>
+  </div>
+</div>
 
-        function openDeleteModal(videoId) {
-            currentDeleteVideoId = videoId;
-            const modal = document.getElementById('emailModal');
-            const emailInput = document.getElementById('deleteEmail');
-            const errorMsg = document.getElementById('errorMessage');
-            
-            emailInput.value = '';
-            emailInput.classList.remove('error');
-            errorMsg.classList.remove('show');
-            
-            modal.classList.add('active');
-            emailInput.focus();
-        }
+<!-- MODAL: WATCH -->
+<div class="modal-overlay" id="watchModal">
+  <div class="modal modal-watch">
+    <h2>▶️ Now Watching</h2>
+    <iframe id="watchFrame" class="watch-video-frame" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    <div class="watch-timer" id="watchTimer">00:00:00</div>
+    <button class="btn-stop" onclick="stopWatching()">⏹ Stop & Save Time</button>
+  </div>
+</div>
 
-        function closeEmailModal() {
-            const modal = document.getElementById('emailModal');
-            const emailInput = document.getElementById('deleteEmail');
-            const errorMsg = document.getElementById('errorMessage');
-            
-            modal.classList.remove('active');
-            currentDeleteVideoId = null;
-            emailInput.value = '';
-            emailInput.classList.remove('error');
-            errorMsg.classList.remove('show');
-        }
+<script>
+const API = window.location.origin;
 
-        function validateEmail(email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return emailRegex.test(email);
-        }
+// ── STATE ──────────────────────────────────────────────
+let currentUser = null;
+let currentDeleteId = null;
+let allLibUsers = [];
+let watchVideoId = null;
+let watchSeconds = 0;
+let watchSessionStart = null;
+let watchInterval = null;
+let chartDays = 7;
+let chartBarInstance = null;
+let chartLineInstance = null;
+let analyticsData = null;
 
-        async function confirmDelete() {
-            const emailInput = document.getElementById('deleteEmail');
-            const errorMsg = document.getElementById('errorMessage');
-            const email = emailInput.value.trim();
-            
-            // Reset error state
-            emailInput.classList.remove('error');
-            errorMsg.classList.remove('show');
-            
-            if (!email) {
-                emailInput.classList.add('error');
-                errorMsg.textContent = 'Please enter email';
-                errorMsg.classList.add('show');
-                return;
-            }
+// Palette for per-user coloring
+const PALETTE = [
+  ['rgba(255,0,128,.8)','rgba(255,0,128,.25)'],
+  ['rgba(64,224,208,.8)','rgba(64,224,208,.25)'],
+  ['rgba(255,140,0,.8)','rgba(255,140,0,.25)'],
+  ['rgba(100,200,255,.8)','rgba(100,200,255,.25)'],
+  ['rgba(180,120,255,.8)','rgba(180,120,255,.25)'],
+  ['rgba(0,255,136,.8)','rgba(0,255,136,.25)'],
+];
 
-            if (!validateEmail(email)) {
-                emailInput.classList.add('error');
-                errorMsg.textContent = 'Invalid email format';
-                errorMsg.classList.add('show');
-                return;
-            }
-            
-            if (!currentDeleteVideoId) {
-                showAlert('No video selected', true);
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/videos/delete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        video_id: currentDeleteVideoId, 
-                        email: email 
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showAlert('✅ Video deleted successfully!');
-                    closeEmailModal();
-                    loadVideos();
-                } else {
-                    // Show error in modal
-                    emailInput.classList.add('error');
-                    errorMsg.textContent = data.error || 'Unauthorized. Admin only.';
-                    errorMsg.classList.add('show');
-                    
-                    // Also show alert
-                    showAlert(data.error || 'Failed to delete', true);
-                    
-                    // Close modal after 2 seconds
-                    setTimeout(() => {
-                        closeEmailModal();
-                    }, 2000);
-                }
-            } catch (error) {
-                emailInput.classList.add('error');
-                errorMsg.textContent = 'Error deleting video';
-                errorMsg.classList.add('show');
-                showAlert('Error deleting video', true);
-                
-                // Close modal after 2 seconds
-                setTimeout(() => {
-                    closeEmailModal();
-                }, 2000);
-            }
-        }
+// ── INIT ───────────────────────────────────────────────
+(function(){
+  try { const s = localStorage.getItem('vmUser'); if(s){ currentUser = JSON.parse(s); updateNavUser(); } } catch(e){}
+  showPage('library');
+})();
 
-        function openInNewTab(url) {
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
+// ── PAGES ──────────────────────────────────────────────
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const idx={library:0,allvideos:1,history:2}[page];
+  document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  if(page==='library') loadLibrary();
+  if(page==='allvideos') loadAllVideos();
+  if(page==='history') loadHistory();
+}
 
-        function showAlert(message, isError = false) {
-            const alert = document.createElement('div');
-            alert.className = `alert ${isError ? 'error' : ''}`;
-            alert.textContent = message;
-            document.body.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 3000);
-        }
+// ── USER ───────────────────────────────────────────────
+function updateNavUser(){
+  const el=document.getElementById('navUser');
+  if(currentUser){
+    el.innerHTML=`<div class="user-chip"><span class="dot"></span>${esc(currentUser.name)}</div>
+      <button class="btn-login" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)" onclick="logout()">Logout</button>`;
+    document.getElementById('loginPrompt').style.display='none';
+    document.getElementById('addForm').style.display='block';
+  } else {
+    el.innerHTML=`<button class="btn-login" onclick="openLoginModal()">Login / Register</button>`;
+    document.getElementById('loginPrompt').style.display='block';
+    document.getElementById('addForm').style.display='none';
+  }
+}
+function openLoginModal(){
+  document.getElementById('loginName').value='';
+  document.getElementById('loginEmail').value='';
+  document.getElementById('loginErr').textContent='';
+  document.getElementById('loginErr').classList.remove('show');
+  openModal('loginModal');
+  setTimeout(()=>document.getElementById('loginName').focus(),80);
+}
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
 
-        document.getElementById('videoUrl').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') addVideo();
-        });
+async function confirmLogin(){
+  const name=document.getElementById('loginName').value.trim();
+  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
+  const err=document.getElementById('loginErr');
+  err.textContent=''; err.classList.remove('show');
+  if(!name){err.textContent='Name required';err.classList.add('show');return;}
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Valid email required';err.classList.add('show');return;}
+  try{
+    const r=await fetch(`${API}/api/users/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
+    const d=await r.json();
+    if(d.success){
+      currentUser=d.user; localStorage.setItem('vmUser',JSON.stringify(currentUser));
+      closeModal('loginModal'); updateNavUser();
+      toast(d.is_new?`Welcome ${d.user.name}! Library created 🎉`:`Welcome back, ${d.user.name}!`);
+      loadLibrary();
+    } else {err.textContent=d.error||'Error';err.classList.add('show');}
+  } catch(e){err.textContent='Server error';err.classList.add('show');}
+}
 
-        document.getElementById('deleteEmail').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') confirmDelete();
-        });
+function logout(){
+  currentUser=null; localStorage.removeItem('vmUser'); updateNavUser();
+  document.getElementById('libGrid').innerHTML='<div class="empty">Login to see your library</div>';
+  toast('Logged out');
+}
 
-        document.getElementById('deleteEmail').addEventListener('input', () => {
-            const emailInput = document.getElementById('deleteEmail');
-            const errorMsg = document.getElementById('errorMessage');
-            emailInput.classList.remove('error');
-            errorMsg.classList.remove('show');
-        });
+// ── LIBRARY ───────────────────────────────────────────
+async function loadLibrary(){
+  const grid=document.getElementById('libGrid');
+  if(!currentUser){grid.innerHTML='<div class="empty">Login to see your library</div>';return;}
+  const loader=document.getElementById('libLoader');
+  loader.classList.add('active'); grid.innerHTML='';
+  try{
+    const r=await fetch(`${API}/api/videos?user_id=${currentUser.id}`);
+    const d=await r.json();
+    if(d.success){
+      if(!d.videos.length) grid.innerHTML='<div class="empty">No videos yet — paste a URL above!</div>';
+      else d.videos.forEach(v=>grid.appendChild(makeCard(v,true)));
+    }
+  } catch(e){toast('Error loading library',true);}
+  finally{loader.classList.remove('active');}
+}
 
-        document.getElementById('emailModal').addEventListener('click', (e) => {
-            if (e.target.id === 'emailModal') closeEmailModal();
-        });
+async function addVideo(){
+  if(!currentUser){openLoginModal();return;}
+  const inp=document.getElementById('videoUrl');
+  const url=inp.value.trim();
+  if(!url){toast('Please enter a URL',true);return;}
+  try{
+    const r=await fetch(`${API}/api/videos/add`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,email:currentUser.email})});
+    const d=await r.json();
+    if(d.success){toast('✅ Video added!');inp.value='';loadLibrary();}
+    else toast(d.error||'Failed',true);
+  } catch(e){toast('Error adding video',true);}
+}
 
-        loadVideos();
-    </script>
+// ── ALL VIDEOS ─────────────────────────────────────────
+async function loadAllVideos(){
+  const grid=document.getElementById('allGrid');
+  const loader=document.getElementById('allLoader');
+  loader.classList.add('active'); grid.innerHTML='';
+  try{
+    const [vr,ur]=await Promise.all([
+      fetch(`${API}/api/videos`).then(r=>r.json()),
+      fetch(`${API}/api/users`).then(r=>r.json())
+    ]);
+    allLibUsers=ur.users||[];
+    buildLibTabs(allLibUsers);
+    if(vr.success){
+      if(!vr.videos.length) grid.innerHTML='<div class="empty">No videos yet</div>';
+      else vr.videos.forEach(v=>grid.appendChild(makeCard(v,false)));
+    }
+  } catch(e){toast('Error loading',true);}
+  finally{loader.classList.remove('active');}
+}
+
+function buildLibTabs(users){
+  const tabs=document.getElementById('libFilterTabs');
+  tabs.innerHTML=`<button class="lib-tab active" onclick="filterByLib(null,this)">All</button>`;
+  users.forEach(u=>{
+    const b=document.createElement('button');
+    b.className='lib-tab';
+    b.textContent=`${u.name} (${u.video_count})`;
+    b.onclick=()=>filterByLib(u.id,b);
+    tabs.appendChild(b);
+  });
+}
+
+function filterByLib(userId,btn){
+  document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#allGrid .video-card').forEach(c=>{
+    c.style.display=(!userId||c.dataset.userId===userId)?'':'none';
+  });
+}
+
+// ── CARD ───────────────────────────────────────────────
+function isNew(iso){ return (Date.now()-new Date(iso).getTime())<86400000; }
+
+function makeCard(v,showWatch){
+  const card=document.createElement('div');
+  card.className='video-card'; card.dataset.userId=v.user_id||'';
+  const newTag=isNew(v.created_at)?`<span class="tag-new">🆕 NEW</span>`:'';
+  const libBadge=v.library_name?`<div class="lib-badge">📚 ${esc(v.library_name)}</div>`:'';
+  const watchBtn=(showWatch&&currentUser)?`<button class="btn-sm btn-watch" onclick="startWatching('${v._id}','${esc(v.embed_url)}')">▶ Watch</button>`:'';
+  card.innerHTML=`
+    <div class="video-wrapper">
+      ${newTag}
+      <span class="zoom-icon" onclick="openTab('${esc(v.url)}')">🔍</span>
+      <iframe src="${esc(v.embed_url)}" frameborder="0"
+        allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
+        allowfullscreen loading="lazy"></iframe>
+    </div>
+    <div class="video-info">
+      ${libBadge}
+      <div class="video-added-by">👤 ${esc(v.added_by)}</div>
+      <div class="video-url" title="${esc(v.url)}">${esc(v.url)}</div>
+      <div class="video-bottom">
+        <div class="video-views">👁 ${v.views||0} views</div>
+        <div class="btn-row">
+          ${watchBtn}
+          <button class="btn-sm btn-open" onclick="openTab('${esc(v.url)}')">Open</button>
+          <button class="btn-sm btn-del" onclick="openDeleteModal('${v._id}')">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  card.querySelector('iframe').addEventListener('mouseenter',()=>{
+    fetch(`${API}/api/videos/view`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:v._id})});
+  },{once:true});
+  return card;
+}
+
+// ── WATCH TIMER ────────────────────────────────────────
+function startWatching(videoId,embedUrl){
+  if(!currentUser){openLoginModal();return;}
+  watchVideoId=videoId;
+  watchSeconds=0;
+  watchSessionStart=new Date().toISOString(); // ← record wall-clock start
+  document.getElementById('watchFrame').src=embedUrl+'?autoplay=1';
+  document.getElementById('watchTimer').textContent='00:00:00';
+  openModal('watchModal');
+  watchInterval=setInterval(()=>{
+    watchSeconds++;
+    const h=String(Math.floor(watchSeconds/3600)).padStart(2,'0');
+    const m=String(Math.floor((watchSeconds%3600)/60)).padStart(2,'0');
+    const s=String(watchSeconds%60).padStart(2,'0');
+    document.getElementById('watchTimer').textContent=`${h}:${m}:${s}`;
+  },1000);
+}
+
+async function stopWatching(){
+  clearInterval(watchInterval);
+  document.getElementById('watchFrame').src='';
+  closeModal('watchModal');
+  if(watchSeconds>2&&currentUser&&watchVideoId){
+    try{
+      await fetch(`${API}/api/history/record`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          user_id:currentUser.id,
+          video_id:watchVideoId,
+          seconds_watched:watchSeconds,
+          session_start:watchSessionStart   // ← send wall-clock start to server
+        })});
+      toast(`✅ Saved ${fmtTime(watchSeconds)} watch time`);
+    } catch(e){toast('Could not save watch time',true);}
+  }
+  watchVideoId=null; watchSeconds=0; watchSessionStart=null;
+}
+
+// ── DELETE ─────────────────────────────────────────────
+function openDeleteModal(id){
+  currentDeleteId=id;
+  document.getElementById('deleteEmail').value='';
+  document.getElementById('deleteErr').textContent='';
+  document.getElementById('deleteErr').classList.remove('show');
+  openModal('deleteModal');
+  setTimeout(()=>document.getElementById('deleteEmail').focus(),80);
+}
+async function confirmDelete(){
+  const email=document.getElementById('deleteEmail').value.trim().toLowerCase();
+  const err=document.getElementById('deleteErr');
+  err.textContent=''; err.classList.remove('show');
+  if(!email){err.textContent='Email required';err.classList.add('show');return;}
+  try{
+    const r=await fetch(`${API}/api/videos/delete`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:currentDeleteId,email})});
+    const d=await r.json();
+    if(d.success){toast('🗑️ Deleted!');closeModal('deleteModal');loadLibrary();loadAllVideos();}
+    else{err.textContent=d.error||'Unauthorized';err.classList.add('show');}
+  } catch(e){err.textContent='Server error';err.classList.add('show');}
+}
+
+// ── ANALYTICS PAGE ─────────────────────────────────────
+async function loadHistory(){
+  const loader=document.getElementById('histLoader');
+  loader.classList.add('active');
+  document.getElementById('statsGrid').innerHTML='';
+  document.getElementById('histTable').innerHTML='';
+  document.getElementById('chartsArea').style.display='none';
+  try{
+    const [hr,ar]=await Promise.all([
+      fetch(`${API}/api/history`).then(r=>r.json()),
+      fetch(`${API}/api/analytics?days=${chartDays}`).then(r=>r.json())
+    ]);
+    if(!hr.success){toast('Error loading history',true);return;}
+    analyticsData=ar;
+
+    // populate user filter select
+    const sel=document.getElementById('chartUserFilter');
+    sel.innerHTML='<option value="">All Users</option>';
+    (hr.user_stats||[]).forEach(u=>{
+      const o=document.createElement('option');
+      o.value=u.user_id; o.textContent=u.name;
+      sel.appendChild(o);
+    });
+
+    // legend
+    buildLegend(hr.user_stats||[]);
+
+    // stat cards
+    const maxSec=(hr.user_stats||[]).reduce((m,u)=>Math.max(m,u.total_seconds),1);
+    const grid=document.getElementById('statsGrid');
+    if(!hr.user_stats.length){ grid.innerHTML='<div class="empty">No watch history yet</div>'; }
+    else{
+      hr.user_stats.forEach((u,i)=>{
+        const pct=Math.round((u.total_seconds/maxSec)*100);
+        const card=document.createElement('div');
+        card.className='stat-card';
+        card.innerHTML=`
+          <div class="uname">👤 ${esc(u.name)}</div>
+          <div class="uemail">${esc(u.email)}</div>
+          <div class="stat-row"><span>Total Watch Time</span><span>${fmtTime(u.total_seconds)}</span></div>
+          <div class="stat-row"><span>Videos Watched</span><span>${u.videos_watched}</span></div>
+          <div class="stat-row"><span>Last Active</span><span>${u.last_watched?timeAgo(u.last_watched):'Never'}</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+        card.onclick=()=>filterChartsToUser(u.user_id,card);
+        grid.appendChild(card);
+      });
+    }
+
+    // charts
+    document.getElementById('chartsArea').style.display='block';
+    renderCharts(ar);
+
+    // video table
+    if(hr.video_details.length){
+      const tb=document.getElementById('histTable');
+      hr.video_details.forEach(row=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td><img class="thumb-sm" src="https://img.youtube.com/vi/${ytId(row.url)}/mqdefault.jpg" onerror="this.src=''"></td>
+          <td>${esc(row.user_name)}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(row.url)}">${esc(row.url)}</td>
+          <td><span class="time-badge">⏱ ${fmtTime(row.total_seconds)}</span></td>
+          <td style="text-align:center">${row.session_count}</td>
+          <td>${timeAgo(row.last_watched)}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+
+  } catch(e){ toast('Error loading analytics',true); console.error(e); }
+  finally{ loader.classList.remove('active'); }
+}
+
+function buildLegend(users){
+  const row=document.getElementById('legendRow');
+  row.innerHTML='';
+  users.forEach((u,i)=>{
+    const color=PALETTE[i%PALETTE.length][0];
+    const item=document.createElement('div');
+    item.className='legend-item';
+    item.innerHTML=`<span class="legend-dot" style="background:${color}"></span>${esc(u.name)}`;
+    row.appendChild(item);
+  });
+}
+
+function setDays(d,btn){
+  chartDays=d;
+  document.querySelectorAll('.ctrl-btn').forEach(b=>{ b.classList.remove('ctrl-btn-active'); b.classList.add('ctrl-btn'); });
+  btn.classList.add('ctrl-btn-active'); btn.classList.remove('ctrl-btn');
+  reloadCharts();
+}
+
+async function reloadCharts(){
+  const uid=document.getElementById('chartUserFilter').value;
+  const url=`${API}/api/analytics?days=${chartDays}${uid?'&user_id='+uid:''}`;
+  try{
+    const r=await fetch(url);
+    const d=await r.json();
+    if(d.success){ analyticsData=d; renderCharts(d); }
+  } catch(e){ toast('Error loading charts',true); }
+}
+
+function filterChartsToUser(userId,card){
+  // toggle selection
+  const wasSelected=card.classList.contains('selected');
+  document.querySelectorAll('.stat-card').forEach(c=>c.classList.remove('selected'));
+  if(!wasSelected){
+    card.classList.add('selected');
+    document.getElementById('chartUserFilter').value=userId;
+  } else {
+    document.getElementById('chartUserFilter').value='';
+  }
+  reloadCharts();
+}
+
+// ── CHART RENDERING ────────────────────────────────────
+function renderCharts(data){
+  renderBarChart(data.day_data||[]);
+  renderLineChart(data.hour_data||[]);
+  renderSessionsFeed(data.sessions||[]);
+}
+
+function renderBarChart(dayData){
+  // Collect unique users and dates
+  const userNames=[...new Set(dayData.map(r=>r.user_name))];
+  const allDays=[...new Set(dayData.map(r=>r.day))].sort();
+
+  if(!allDays.length){
+    if(chartBarInstance){chartBarInstance.destroy();chartBarInstance=null;}
+    document.getElementById('barSubtitle').textContent='— no data';
+    return;
+  }
+  document.getElementById('barSubtitle').textContent=`last ${chartDays} days`;
+
+  const datasets=userNames.map((uname,i)=>{
+    const [border,bg]=PALETTE[i%PALETTE.length];
+    return {
+      label: uname,
+      data: allDays.map(day=>{
+        const row=dayData.find(r=>r.user_name===uname&&r.day===day);
+        return row?+(row.total_seconds/3600).toFixed(2):0;
+      }),
+      backgroundColor: bg,
+      borderColor: border,
+      borderWidth: 2,
+      borderRadius: 5,
+    };
+  });
+
+  const ctx=document.getElementById('chartBar').getContext('2d');
+  if(chartBarInstance) chartBarInstance.destroy();
+  chartBarInstance=new Chart(ctx,{
+    type:'bar',
+    data:{labels:allDays.map(d=>d.slice(5)),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:userNames.length>1,labels:{color:'rgba(255,255,255,.7)',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}h`}}},
+      scales:{
+        x:{ticks:{color:'rgba(255,255,255,.55)',font:{size:10}},grid:{color:'rgba(255,255,255,.06)'}},
+        y:{ticks:{color:'rgba(255,255,255,.55)',font:{size:10},callback:v=>`${v}h`},
+          grid:{color:'rgba(255,255,255,.08)'},title:{display:true,text:'Hours',color:'rgba(255,255,255,.4)',font:{size:11}}}
+      }
+    }
+  });
+}
+
+function renderLineChart(hourData){
+  const userNames=[...new Set(hourData.map(r=>r.user_name))];
+  const hours=Array.from({length:24},(_,i)=>i);
+
+  if(!hourData.length){
+    if(chartLineInstance){chartLineInstance.destroy();chartLineInstance=null;}
+    document.getElementById('lineSubtitle').textContent='— no data';
+    return;
+  }
+  document.getElementById('lineSubtitle').textContent=`last ${chartDays} days`;
+
+  const datasets=userNames.map((uname,i)=>{
+    const [border,bg]=PALETTE[i%PALETTE.length];
+    return {
+      label: uname,
+      data: hours.map(h=>{
+        const row=hourData.find(r=>r.user_name===uname&&r.hour===h);
+        return row?+(row.total_seconds/60).toFixed(1):0;
+      }),
+      borderColor: border,
+      backgroundColor: bg,
+      borderWidth: 2.5,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.38,
+      fill: true,
+    };
+  });
+
+  const ctx=document.getElementById('chartLine').getContext('2d');
+  if(chartLineInstance) chartLineInstance.destroy();
+  chartLineInstance=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:hours.map(h=>`${String(h).padStart(2,'0')}:00`),
+      datasets
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:userNames.length>1,labels:{color:'rgba(255,255,255,.7)',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}m`}}},
+      scales:{
+        x:{ticks:{color:'rgba(255,255,255,.55)',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,.06)'}},
+        y:{ticks:{color:'rgba(255,255,255,.55)',font:{size:10},callback:v=>`${v}m`},
+          grid:{color:'rgba(255,255,255,.08)'},title:{display:true,text:'Minutes',color:'rgba(255,255,255,.4)',font:{size:11}}}
+      }
+    }
+  });
+}
+
+function renderSessionsFeed(sessions){
+  const feed=document.getElementById('sessionsFeed');
+  if(!sessions.length){feed.innerHTML='<div class="empty">No sessions recorded yet</div>';return;}
+  feed.innerHTML='';
+  sessions.slice(0,30).forEach(s=>{
+    const item=document.createElement('div');
+    item.className='session-item';
+    item.innerHTML=`
+      <img class="session-thumb" src="https://img.youtube.com/vi/${ytId(s.url)}/mqdefault.jpg" onerror="this.src=''">
+      <div class="session-info">
+        <div class="session-user">👤 ${esc(s.user_name)}</div>
+        <div class="session-url">${esc(s.url)}</div>
+      </div>
+      <div class="session-time-info">
+        <span class="time-badge">⏱ ${fmtTime(s.seconds_watched)}</span>
+        <div class="session-when">${timeAgo(s.session_start)}</div>
+      </div>`;
+    feed.appendChild(item);
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function openTab(url){ window.open(url,'_blank','noopener,noreferrer'); }
+
+function fmtTime(sec){
+  sec=parseInt(sec)||0;
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  if(h) return `${h}h ${m}m`;
+  if(m) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function timeAgo(iso){
+  const diff=Date.now()-new Date(iso);
+  if(diff<60000) return 'Just now';
+  if(diff<3600000) return `${Math.floor(diff/60000)}m ago`;
+  if(diff<86400000) return `${Math.floor(diff/3600000)}h ago`;
+  return `${Math.floor(diff/86400000)}d ago`;
+}
+
+function ytId(url){
+  try{
+    const u=new URL(url);
+    if(u.hostname.includes('youtube.com')) return u.searchParams.get('v')||'';
+    if(u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+  } catch(e){}
+  return '';
+}
+
+function toast(msg,isErr=false){
+  const t=document.createElement('div');
+  t.className=`toast ${isErr?'err':'ok'}`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+}
+
+// ── KEYBOARD + OVERLAY CLOSE ───────────────────────────
+document.getElementById('videoUrl')?.addEventListener('keypress',e=>{if(e.key==='Enter')addVideo();});
+document.getElementById('deleteEmail').addEventListener('keypress',e=>{if(e.key==='Enter')confirmDelete();});
+document.getElementById('loginEmail').addEventListener('keypress',e=>{if(e.key==='Enter')confirmLogin();});
+['loginModal','deleteModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal(id);});
+});
+document.getElementById('watchModal').addEventListener('click',e=>{if(e.target===e.currentTarget)stopWatching();});
+</script>
 </body>
 </html>
