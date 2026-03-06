@@ -50,8 +50,13 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:22px}
 .video-card{background:rgba(255,255,255,.05);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;transition:all .28s;position:relative}
 .video-card:hover{transform:translateY(-4px);border-color:#ff0080;box-shadow:0 14px 36px rgba(255,0,128,.28)}
-.video-wrapper{position:relative;width:100%;padding-bottom:56.25%;background:#000}
+.video-wrapper{position:relative;width:100%;padding-bottom:56.25%;background:#000;cursor:pointer}
 .video-wrapper iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.video-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);transition:background .22s}
+.play-overlay:hover{background:rgba(0,0,0,.15)}
+.play-btn-circle{width:56px;height:56px;border-radius:50%;background:rgba(255,0,128,.85);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 18px rgba(255,0,128,.5);transition:transform .22s}
+.play-overlay:hover .play-btn-circle{transform:scale(1.12)}
 .tag-new{position:absolute;top:9px;left:9px;background:linear-gradient(45deg,#00ff88,#00cc66);color:#000;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;z-index:10;letter-spacing:.4px;box-shadow:0 3px 10px rgba(0,255,136,.4);animation:pulse 1.5s infinite}
 .zoom-icon{position:absolute;top:9px;right:9px;background:rgba(255,0,128,.8);padding:5px 11px;border-radius:7px;cursor:pointer;z-index:10;font-size:12px;transition:all .28s}
 .zoom-icon:hover{background:#ff0080;transform:scale(1.1)}
@@ -333,6 +338,7 @@ let chartDays = 7;
 let chartBarInstance = null;
 let chartLineInstance = null;
 let analyticsData = null;
+let activeCardIframe = null;   // tracks the currently playing card iframe
 
 // Palette for per-user coloring
 const PALETTE = [
@@ -482,7 +488,51 @@ function filterByLib(userId,btn){
   });
 }
 
-// ── CARD ───────────────────────────────────────────────
+// ── CARD VIDEO PLAYBACK (one at a time) ───────────────
+function playCardVideo(videoId, embedUrl){
+  // If the watch-modal session is active, block card playback entirely
+  if(watchVideoId){
+    toast('⚠️ Stop the current session first!', true);
+    openModal('watchModal');
+    return;
+  }
+  const wrapper = document.getElementById('wrapper-'+videoId);
+  if(!wrapper) return;
+
+  // Stop & remove the previously active card iframe
+  if(activeCardIframe){
+    const prev = activeCardIframe;
+    prev.src = '';          // stops YouTube playback
+    // Restore thumbnail + overlay in the previous wrapper
+    const prevWrapper = prev.closest('.video-wrapper');
+    if(prevWrapper){
+      prev.remove();
+      prevWrapper.querySelector('.play-overlay').style.display = 'flex';
+      prevWrapper.querySelector('.video-thumb') && (prevWrapper.querySelector('.video-thumb').style.display = '');
+    }
+    activeCardIframe = null;
+  }
+
+  // Hide overlay and thumb, inject iframe
+  const overlay = wrapper.querySelector('.play-overlay');
+  const thumb   = wrapper.querySelector('.video-thumb');
+  if(overlay) overlay.style.display = 'none';
+  if(thumb)   thumb.style.display   = 'none';
+
+  const iframe = document.createElement('iframe');
+  iframe.src = embedUrl + '?autoplay=1';
+  iframe.setAttribute('frameborder','0');
+  iframe.setAttribute('allow','accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture');
+  iframe.setAttribute('allowfullscreen','');
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none';
+  wrapper.appendChild(iframe);
+  activeCardIframe = iframe;
+
+  // Count the view
+  fetch(`${API}/api/videos/view`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:videoId})});
+}
+
+
 function isNew(iso){ return (Date.now()-new Date(iso).getTime())<86400000; }
 
 function makeCard(v,showWatch){
@@ -492,12 +542,13 @@ function makeCard(v,showWatch){
   const libBadge=v.library_name?`<div class="lib-badge">📚 ${esc(v.library_name)}</div>`:'';
   const watchBtn=(showWatch&&currentUser)?`<button class="btn-sm btn-watch" onclick="startWatching('${v._id}','${esc(v.embed_url)}')">▶ Watch</button>`:'';
   card.innerHTML=`
-    <div class="video-wrapper">
+    <div class="video-wrapper" id="wrapper-${v._id}">
       ${newTag}
-      <span class="zoom-icon" onclick="openTab('${esc(v.url)}')">🔍</span>
-      <iframe src="${esc(v.embed_url)}" frameborder="0"
-        allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"
-        allowfullscreen loading="lazy"></iframe>
+      <span class="zoom-icon" onclick="event.stopPropagation();openTab('${esc(v.url)}')">🔍</span>
+      <img class="video-thumb" src="${esc(v.thumbnail||'')}" onerror="this.style.display='none'">
+      <div class="play-overlay" onclick="playCardVideo('${v._id}','${esc(v.embed_url)}')">
+        <div class="play-btn-circle">▶</div>
+      </div>
     </div>
     <div class="video-info">
       ${libBadge}
@@ -512,9 +563,6 @@ function makeCard(v,showWatch){
         </div>
       </div>
     </div>`;
-  card.querySelector('iframe').addEventListener('mouseenter',()=>{
-    fetch(`${API}/api/videos/view`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:v._id})});
-  },{once:true});
   return card;
 }
 
@@ -526,6 +574,17 @@ function startWatching(videoId,embedUrl){
     toast('⚠️ A video is already playing — stop it first!',true);
     openModal('watchModal'); // bring the active session back into view
     return;
+  }
+  // Stop any card iframe that might be playing
+  if(activeCardIframe){
+    activeCardIframe.src='';
+    const prevWrapper=activeCardIframe.closest('.video-wrapper');
+    if(prevWrapper){
+      activeCardIframe.remove();
+      prevWrapper.querySelector('.play-overlay')&&(prevWrapper.querySelector('.play-overlay').style.display='flex');
+      prevWrapper.querySelector('.video-thumb')&&(prevWrapper.querySelector('.video-thumb').style.display='');
+    }
+    activeCardIframe=null;
   }
   watchVideoId=videoId;
   watchSeconds=0;
