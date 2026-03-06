@@ -463,4 +463,5 @@ def create_app():
 
 if __name__ == '__main__':
     print("🚀 Video Manager v3 — with analytics")
-    web.run_app(create_app(), host='0.0.0.0', port=9000)
+    port = int(os.environ.get("PORT", 9000))
+    web.run_app(create_app(), host="0.0.0.0", port=port)
