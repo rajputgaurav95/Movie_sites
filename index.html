@@ -521,6 +521,12 @@ function makeCard(v,showWatch){
 // ── WATCH TIMER ────────────────────────────────────────
 function startWatching(videoId,embedUrl){
   if(!currentUser){openLoginModal();return;}
+  // Block if a session is already running
+  if(watchVideoId){
+    toast('⚠️ A video is already playing — stop it first!',true);
+    openModal('watchModal'); // bring the active session back into view
+    return;
+  }
   watchVideoId=videoId;
   watchSeconds=0;
   watchSessionStart=new Date().toISOString(); // ← record wall-clock start
