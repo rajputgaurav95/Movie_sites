@@ -60,6 +60,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 .tag-new{position:absolute;top:9px;left:9px;background:linear-gradient(45deg,#00ff88,#00cc66);color:#000;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;z-index:10;letter-spacing:.4px;box-shadow:0 3px 10px rgba(0,255,136,.4);animation:pulse 1.5s infinite}
 .zoom-icon{position:absolute;top:9px;right:9px;background:rgba(255,0,128,.8);padding:5px 11px;border-radius:7px;cursor:pointer;z-index:10;font-size:12px;transition:all .28s}
 .zoom-icon:hover{background:#ff0080;transform:scale(1.1)}
+.live-timer-badge{position:absolute;bottom:9px;left:9px;background:rgba(0,0,0,.75);border:1px solid #ff8c00;color:#ff8c00;font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px;z-index:20;letter-spacing:.5px;font-variant-numeric:tabular-nums}
 .video-info{padding:13px}
 .video-added-by{font-size:11px;color:#40e0d0;font-weight:700;margin-bottom:3px}
 .video-url{font-size:11px;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:9px}
@@ -314,15 +315,6 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
   </div>
 </div>
 
-<!-- MODAL: WATCH -->
-<div class="modal-overlay" id="watchModal">
-  <div class="modal modal-watch">
-    <h2>▶️ Now Watching</h2>
-    <iframe id="watchFrame" class="watch-video-frame" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-    <div class="watch-timer" id="watchTimer">00:00:00</div>
-    <button class="btn-stop" onclick="stopWatching()">⏹ Stop & Save Time</button>
-  </div>
-</div>
 
 <script>
 const API = window.location.origin;
@@ -340,6 +332,7 @@ let chartBarInstance = null;
 let chartLineInstance = null;
 let analyticsData = null;
 let activeCardIframe = null;
+let activeVideoId = null;            // id of video currently playing inline
 let selectedAnalyticsUserId = null;  // which user card is selected in analytics
 let allUserStats = [];               // cached user stats list
 
@@ -440,7 +433,7 @@ async function loadLibrary(){
     const d = await r.json();
     if(d.success){
       if(!d.videos.length) grid.innerHTML = '<div class="empty">No videos yet — paste a URL above!</div>';
-      else d.videos.forEach(v => grid.appendChild(makeCard(v, true)));
+      else d.videos.forEach(v => grid.appendChild(makeCard(v)));
     }
   } catch(e){ toast('Error loading library', true); }
   finally{ loader.classList.remove('active'); }
@@ -476,7 +469,7 @@ async function loadAllVideos(){
       else {
         vr.videos.forEach(v => {
           // Show Watch button for logged-in users on All Videos page too
-          grid.appendChild(makeCard(v, !!currentUser));
+          grid.appendChild(makeCard(v));
         });
       }
     }
@@ -504,57 +497,115 @@ function filterByLib(userId, btn){
   });
 }
 
-// ── CARD PLAY BUTTON → opens Watch modal with timer ────
-// Both the card ▶ overlay AND the "Watch" button call startWatching.
-// This ensures every play is tracked. No inline embed without a session.
+// ── INLINE PLAY + BACKGROUND SESSION TRACKING ─────────
+// Click ▶ → video plays right in the card.
+// If user is logged in, a silent timer runs in the background.
+// Clicking another video auto-saves the previous session first.
+
 function playCardVideo(videoId, embedUrl){
-  // If not logged in, just play inline without tracking
-  if(!currentUser){
-    if(watchVideoId){ toast('⚠️ Stop the current session first!', true); openModal('watchModal'); return; }
-    const wrapper = document.getElementById('wrapper-' + videoId);
-    if(!wrapper) return;
-    if(activeCardIframe){
-      activeCardIframe.src = '';
-      const pw = activeCardIframe.closest('.video-wrapper');
-      if(pw){ activeCardIframe.remove(); const po=pw.querySelector('.play-overlay'),pt=pw.querySelector('.video-thumb'); if(po)po.style.display='flex'; if(pt)pt.style.display=''; }
-      activeCardIframe = null;
-    }
-    const overlay = wrapper.querySelector('.play-overlay');
-    const thumb   = wrapper.querySelector('.video-thumb');
-    if(overlay) overlay.style.display = 'none';
-    if(thumb)   thumb.style.display   = 'none';
-    const iframe = document.createElement('iframe');
-    iframe.src = embedUrl + '?autoplay=1&rel=0';
-    iframe.setAttribute('frameborder','0');
-    iframe.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-    iframe.setAttribute('allowfullscreen','');
-    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none';
-    wrapper.appendChild(iframe);
-    activeCardIframe = iframe;
-    return;
+  // If same video clicked again, do nothing (already playing)
+  if(activeVideoId === videoId) return;
+
+  // Save existing session before switching
+  saveCurrentSession();
+
+  const wrapper = document.getElementById('wrapper-' + videoId);
+  if(!wrapper) return;
+
+  // Stop previous iframe
+  if(activeCardIframe){
+    activeCardIframe.src = '';
+    activeCardIframe.remove();
+    activeCardIframe = null;
   }
-  // Logged-in: route through the Watch modal so time is always tracked
-  startWatching(videoId, embedUrl);
+  // Reset previous card UI
+  if(activeVideoId){
+    const po = document.getElementById('overlay-' + activeVideoId);
+    const pt = document.getElementById('thumb-' + activeVideoId);
+    const tb = document.getElementById('timer-badge-' + activeVideoId);
+    if(po) po.style.display = 'flex';
+    if(pt) pt.style.display = '';
+    if(tb) tb.style.display = 'none';
+  }
+
+  // Inject iframe into new card
+  const overlay = document.getElementById('overlay-' + videoId);
+  const thumb   = document.getElementById('thumb-' + videoId);
+  if(overlay) overlay.style.display = 'none';
+  if(thumb)   thumb.style.display   = 'none';
+
+  const iframe = document.createElement('iframe');
+  iframe.src = embedUrl + '?autoplay=1&rel=0';
+  iframe.setAttribute('frameborder','0');
+  iframe.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+  iframe.setAttribute('allowfullscreen','');
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;z-index:5';
+  wrapper.appendChild(iframe);
+  activeCardIframe = iframe;
+  activeVideoId    = videoId;
+
+  // Start background session timer (only if logged in)
+  if(currentUser){
+    watchVideoId       = videoId;
+    watchSeconds       = 0;
+    watchSessionStart  = new Date().toISOString();
+    clearInterval(watchInterval);
+    const badge   = document.getElementById('timer-badge-' + videoId);
+    const timerTxt = document.getElementById('timer-txt-' + videoId);
+    if(badge) badge.style.display = 'inline-block';
+    watchInterval = setInterval(()=>{
+      watchSeconds++;
+      if(timerTxt){
+        const m = Math.floor(watchSeconds / 60);
+        const s = String(watchSeconds % 60).padStart(2,'0');
+        timerTxt.textContent = `${m}:${s}`;
+      }
+    }, 1000);
+  }
 }
+
+async function saveCurrentSession(){
+  if(!currentUser || !watchVideoId || watchSeconds < 3){ 
+    clearInterval(watchInterval);
+    watchVideoId = null; watchSeconds = 0; watchSessionStart = null;
+    return; 
+  }
+  clearInterval(watchInterval);
+  const vid = watchVideoId, secs = watchSeconds, ss = watchSessionStart;
+  watchVideoId = null; watchSeconds = 0; watchSessionStart = null;
+  try{
+    await fetch(`${API}/api/history/record`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user_id: currentUser.id, video_id: vid, seconds_watched: secs, session_start: ss })
+    });
+    toast(`✅ ${fmtTime(secs)} saved`);
+  } catch(e){ /* silent fail */ }
+}
+
+// Save on page unload / tab close using sendBeacon
+window.addEventListener('beforeunload', ()=>{
+  if(!currentUser || !watchVideoId || watchSeconds < 3) return;
+  clearInterval(watchInterval);
+  const payload = JSON.stringify({ user_id: currentUser.id, video_id: watchVideoId, seconds_watched: watchSeconds, session_start: watchSessionStart });
+  navigator.sendBeacon(`${API}/api/history/record`, new Blob([payload],{type:'application/json'}));
+});
 
 function isNew(iso){ return (Date.now() - new Date(iso).getTime()) < 86400000; }
 
-function makeCard(v, showWatch){
+function makeCard(v){
   const card = document.createElement('div');
   card.className = 'video-card';
+  card.id = 'card-' + v._id;
   card.dataset.userId = v.user_id || '';
   const newTag = isNew(v.created_at) ? `<span class="tag-new">🆕 NEW</span>` : '';
   const libBadge = v.library_name ? `<div class="lib-badge">📚 ${esc(v.library_name)}</div>` : '';
-  // Watch button only if logged in
-  const watchBtn = (showWatch && currentUser)
-    ? `<button class="btn-sm btn-watch" onclick="startWatching('${v._id}','${esc(v.embed_url)}')">▶ Watch</button>`
-    : '';
   card.innerHTML = `
     <div class="video-wrapper" id="wrapper-${v._id}">
       ${newTag}
+      <span class="live-timer-badge" id="timer-badge-${v._id}" style="display:none">⏱ <span id="timer-txt-${v._id}">0:00</span></span>
       <span class="zoom-icon" onclick="event.stopPropagation();openTab('${esc(v.url)}')">🔍</span>
-      <img class="video-thumb" src="${esc(v.thumbnail||'')}" onerror="this.style.display='none'">
-      <div class="play-overlay" onclick="playCardVideo('${v._id}','${esc(v.embed_url)}')">
+      <img class="video-thumb" id="thumb-${v._id}" src="${esc(v.thumbnail||'')}" onerror="this.style.display='none'">
+      <div class="play-overlay" id="overlay-${v._id}" onclick="playCardVideo('${v._id}','${esc(v.embed_url)}')">
         <div class="play-btn-circle">▶</div>
       </div>
     </div>
@@ -563,77 +614,14 @@ function makeCard(v, showWatch){
       <div class="video-added-by">👤 ${esc(v.added_by)}</div>
       <div class="video-url" title="${esc(v.url)}">${esc(v.url)}</div>
       <div class="video-bottom">
-        <div class="video-views">👁 ${v.views||0} views</div>
+        <div class="video-views" id="views-${v._id}">👁 ${v.views||0} views</div>
         <div class="btn-row">
-          ${watchBtn}
           <button class="btn-sm btn-open" onclick="openTab('${esc(v.url)}')">Open</button>
           <button class="btn-sm btn-del" onclick="openDeleteModal('${v._id}')">Delete</button>
         </div>
       </div>
     </div>`;
   return card;
-}
-
-// ── WATCH TIMER SESSION ────────────────────────────────
-function startWatching(videoId, embedUrl){
-  if(!currentUser){ openLoginModal(); return; }
-  // Block if another session is already running
-  if(watchVideoId){
-    toast('⚠️ A session is already running — stop it first!', true);
-    openModal('watchModal');
-    return;
-  }
-  // Stop any inline card playback first
-  if(activeCardIframe){
-    activeCardIframe.src = '';
-    const prevWrapper = activeCardIframe.closest('.video-wrapper');
-    if(prevWrapper){
-      activeCardIframe.remove();
-      const po = prevWrapper.querySelector('.play-overlay');
-      const pt = prevWrapper.querySelector('.video-thumb');
-      if(po) po.style.display = 'flex';
-      if(pt) pt.style.display = '';
-    }
-    activeCardIframe = null;
-  }
-
-  watchVideoId = videoId;
-  watchSeconds = 0;
-  watchSessionStart = new Date().toISOString();
-  document.getElementById('watchFrame').src = embedUrl + '?autoplay=1&rel=0';
-  document.getElementById('watchTimer').textContent = '00:00:00';
-  openModal('watchModal');
-
-  watchInterval = setInterval(()=>{
-    watchSeconds++;
-    const h = String(Math.floor(watchSeconds / 3600)).padStart(2, '0');
-    const m = String(Math.floor((watchSeconds % 3600) / 60)).padStart(2, '0');
-    const s = String(watchSeconds % 60).padStart(2, '0');
-    document.getElementById('watchTimer').textContent = `${h}:${m}:${s}`;
-  }, 1000);
-}
-
-async function stopWatching(){
-  clearInterval(watchInterval);
-  document.getElementById('watchFrame').src = '';
-  closeModal('watchModal');
-  // Save session if watched for more than 2 seconds
-  if(watchSeconds > 2 && currentUser && watchVideoId){
-    try{
-      await fetch(`${API}/api/history/record`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          user_id: currentUser.id,
-          video_id: watchVideoId,
-          seconds_watched: watchSeconds,
-          session_start: watchSessionStart
-        })
-      });
-      toast(`✅ Saved ${fmtTime(watchSeconds)} watch time`);
-    } catch(e){ toast('Could not save watch time', true); }
-  }
-  watchVideoId = null; watchSeconds = 0; watchSessionStart = null;
 }
 
 // ── DELETE ─────────────────────────────────────────────
@@ -986,7 +974,6 @@ document.getElementById('loginEmail').addEventListener('keypress', e => { if(e.k
 ['loginModal','deleteModal'].forEach(id => {
   document.getElementById(id).addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(id); });
 });
-document.getElementById('watchModal').addEventListener('click', e => { if(e.target===e.currentTarget) stopWatching(); });
 </script>
 </body>
 </html>
