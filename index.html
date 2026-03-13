@@ -75,17 +75,21 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 .btn-watch:hover{transform:scale(1.06)}
 .lib-badge{display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:2px 7px;font-size:10px;color:rgba(255,255,255,.55);margin-bottom:5px}
 
-/* ── STAT CARDS ── */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:30px}
-.stat-card{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:20px;cursor:pointer;transition:all .28s}
-.stat-card:hover,.stat-card.selected{border-color:#ff8c00;box-shadow:0 8px 24px rgba(255,140,0,.22)}
-.stat-card.selected{background:rgba(255,140,0,.07)}
-.stat-card .uname{font-size:1em;font-weight:700;color:#ff8c00;margin-bottom:3px}
-.stat-card .uemail{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:12px}
-.stat-row{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px}
-.stat-row span:first-child{color:rgba(255,255,255,.55)}
-.stat-row span:last-child{font-weight:700;color:#40e0d0}
-.progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:8px;overflow:hidden;margin-top:9px}
+/* ── ANALYTICS USER SECTIONS ── */
+.analytics-user-section{margin-bottom:36px}
+.analytics-user-header{display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:16px 20px;border-radius:14px;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);cursor:pointer;transition:all .28s;user-select:none}
+.analytics-user-header:hover,.analytics-user-header.selected{border-color:#ff8c00;background:rgba(255,140,0,.07);box-shadow:0 6px 22px rgba(255,140,0,.18)}
+.analytics-user-header.selected{border-color:#ff8c00}
+.user-avatar{width:46px;height:46px;border-radius:50%;background:linear-gradient(45deg,#ff0080,#ff8c00);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0}
+.user-header-info{flex:1}
+.user-header-name{font-size:1.05em;font-weight:700;color:#ff8c00;margin-bottom:2px}
+.user-header-email{font-size:11px;color:rgba(255,255,255,.4)}
+.user-header-stats{display:flex;gap:18px;flex-wrap:wrap}
+.user-header-stat{text-align:center}
+.user-header-stat .val{font-size:1.1em;font-weight:800;color:#40e0d0}
+.user-header-stat .lbl{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
+.user-section-badge{background:linear-gradient(45deg,#ff0080,#ff8c00);color:#fff;font-size:10px;font-weight:800;padding:4px 11px;border-radius:20px;letter-spacing:.3px;white-space:nowrap}
+.progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:8px;overflow:hidden;margin-top:11px}
 .progress-fill{height:100%;background:linear-gradient(45deg,#ff0080,#ff8c00);border-radius:8px;transition:width .55s}
 
 /* ── CHARTS ── */
@@ -96,7 +100,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 .chart-card h3{font-size:14px;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .chart-card h3 span{font-size:11px;color:rgba(255,255,255,.4);font-weight:400}
 .chart-wrap{position:relative;height:260px}
-.chart-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.chart-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;padding:14px 18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px}
 .chart-controls label{font-size:12px;color:rgba(255,255,255,.55)}
 .chart-controls select{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;padding:6px 12px;font-size:12px;cursor:pointer}
 .chart-controls select option{background:#302b63}
@@ -104,6 +108,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 .ctrl-btn-active{background:linear-gradient(45deg,#ff0080,#ff8c00);color:#fff}
 .ctrl-btn{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)!important}
 .ctrl-btn:hover{background:rgba(255,255,255,.18);color:#fff}
+.active-filter-label{font-size:12px;font-weight:700;color:#ff8c00;padding:4px 12px;background:rgba(255,140,0,.12);border:1px solid rgba(255,140,0,.3);border-radius:20px}
 
 /* ── LEGEND ── */
 .legend-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
@@ -178,7 +183,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
   .navbar{padding:11px 14px}
   .page{padding:14px}
   .video-grid{grid-template-columns:1fr}
-  .stats-grid{grid-template-columns:1fr}
+  .user-header-stats{gap:10px}
   .history-table th:nth-child(3),.history-table td:nth-child(3){display:none}
 }
 </style>
@@ -229,33 +234,29 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 
 <!-- ══ PAGE: ANALYTICS ══ -->
 <div class="page" id="page-history">
-  <div class="section-head"><h2>📊 Activity Analytics</h2><p>Day-wise · Hour-wise · Per-user watch sessions</p></div>
+  <div class="section-head"><h2>📊 Activity Analytics</h2><p>Per-user watch stats · Click a user card to view their graphs</p></div>
   <div class="loader" id="histLoader"></div>
 
-  <!-- user stat cards -->
-  <div class="stats-grid" id="statsGrid"></div>
+  <!-- User sections -->
+  <div id="userSections"></div>
 
-  <!-- chart controls -->
+  <!-- Charts area shown below selected user -->
   <div id="chartsArea" style="display:none">
     <div class="chart-controls">
-      <label>User filter:</label>
-      <select id="chartUserFilter" onchange="reloadCharts()">
-        <option value="">All Users</option>
-      </select>
-      <label style="margin-left:10px">Range:</label>
+      <span id="activeFilterLabel" class="active-filter-label">All Users</span>
+      <div style="flex:1"></div>
+      <label>Range:</label>
       <button class="ctrl-btn ctrl-btn-active" id="btn7" onclick="setDays(7,this)">7 days</button>
       <button class="ctrl-btn" id="btn30" onclick="setDays(30,this)">30 days</button>
       <button class="ctrl-btn" id="btn90" onclick="setDays(90,this)">90 days</button>
-      <div id="legendRow" class="legend-row" style="margin:0 0 0 12px"></div>
+      <button class="ctrl-btn" style="margin-left:8px;background:rgba(255,255,255,.06)" onclick="clearUserFilter()">✕ Clear Filter</button>
     </div>
 
     <div class="charts-row">
-      <!-- Day-wise bar -->
       <div class="chart-card">
         <h3>📅 Daily Watch Time (hours) <span id="barSubtitle"></span></h3>
         <div class="chart-wrap"><canvas id="chartBar"></canvas></div>
       </div>
-      <!-- Hour-wise line -->
       <div class="chart-card">
         <h3>🕐 Activity by Hour of Day <span id="lineSubtitle"></span></h3>
         <div class="chart-wrap"><canvas id="chartLine"></canvas></div>
@@ -269,7 +270,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
     </div>
 
     <!-- Video detail table -->
-    <div class="history-section" id="histDetail">
+    <div class="history-section">
       <h3>🎬 Video Watch Log</h3>
       <div style="overflow-x:auto">
         <table class="history-table">
@@ -338,21 +339,26 @@ let chartDays = 7;
 let chartBarInstance = null;
 let chartLineInstance = null;
 let analyticsData = null;
-let activeCardIframe = null;   // tracks the currently playing card iframe
+let activeCardIframe = null;
+let selectedAnalyticsUserId = null;  // which user card is selected in analytics
+let allUserStats = [];               // cached user stats list
 
 // Palette for per-user coloring
 const PALETTE = [
-  ['rgba(255,0,128,.8)','rgba(255,0,128,.25)'],
-  ['rgba(64,224,208,.8)','rgba(64,224,208,.25)'],
-  ['rgba(255,140,0,.8)','rgba(255,140,0,.25)'],
-  ['rgba(100,200,255,.8)','rgba(100,200,255,.25)'],
-  ['rgba(180,120,255,.8)','rgba(180,120,255,.25)'],
-  ['rgba(0,255,136,.8)','rgba(0,255,136,.25)'],
+  ['rgba(255,0,128,.85)','rgba(255,0,128,.22)'],
+  ['rgba(64,224,208,.85)','rgba(64,224,208,.22)'],
+  ['rgba(255,140,0,.85)','rgba(255,140,0,.22)'],
+  ['rgba(100,200,255,.85)','rgba(100,200,255,.22)'],
+  ['rgba(180,120,255,.85)','rgba(180,120,255,.22)'],
+  ['rgba(0,255,136,.85)','rgba(0,255,136,.22)'],
 ];
 
 // ── INIT ───────────────────────────────────────────────
 (function(){
-  try { const s = localStorage.getItem('vmUser'); if(s){ currentUser = JSON.parse(s); updateNavUser(); } } catch(e){}
+  try {
+    const s = localStorage.getItem('vmUser');
+    if(s){ currentUser = JSON.parse(s); updateNavUser(); }
+  } catch(e){}
   showPage('library');
 })();
 
@@ -370,178 +376,180 @@ function showPage(page){
 
 // ── USER ───────────────────────────────────────────────
 function updateNavUser(){
-  const el=document.getElementById('navUser');
+  const el = document.getElementById('navUser');
   if(currentUser){
-    el.innerHTML=`<div class="user-chip"><span class="dot"></span>${esc(currentUser.name)}</div>
+    el.innerHTML = `<div class="user-chip"><span class="dot"></span>${esc(currentUser.name)}</div>
       <button class="btn-login" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)" onclick="logout()">Logout</button>`;
-    document.getElementById('loginPrompt').style.display='none';
-    document.getElementById('addForm').style.display='block';
+    document.getElementById('loginPrompt').style.display = 'none';
+    document.getElementById('addForm').style.display = 'block';
   } else {
-    el.innerHTML=`<button class="btn-login" onclick="openLoginModal()">Login / Register</button>`;
-    document.getElementById('loginPrompt').style.display='block';
-    document.getElementById('addForm').style.display='none';
+    el.innerHTML = `<button class="btn-login" onclick="openLoginModal()">Login / Register</button>`;
+    document.getElementById('loginPrompt').style.display = 'block';
+    document.getElementById('addForm').style.display = 'none';
   }
 }
+
 function openLoginModal(){
-  document.getElementById('loginName').value='';
-  document.getElementById('loginEmail').value='';
-  document.getElementById('loginErr').textContent='';
+  document.getElementById('loginName').value = '';
+  document.getElementById('loginEmail').value = '';
+  document.getElementById('loginErr').textContent = '';
   document.getElementById('loginErr').classList.remove('show');
   openModal('loginModal');
-  setTimeout(()=>document.getElementById('loginName').focus(),80);
+  setTimeout(()=>document.getElementById('loginName').focus(), 80);
 }
 function openModal(id){ document.getElementById(id).classList.add('active'); }
 function closeModal(id){ document.getElementById(id).classList.remove('active'); }
 
 async function confirmLogin(){
-  const name=document.getElementById('loginName').value.trim();
-  const email=document.getElementById('loginEmail').value.trim().toLowerCase();
-  const err=document.getElementById('loginErr');
-  err.textContent=''; err.classList.remove('show');
-  if(!name){err.textContent='Name required';err.classList.add('show');return;}
-  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Valid email required';err.classList.add('show');return;}
+  const name = document.getElementById('loginName').value.trim();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const err = document.getElementById('loginErr');
+  err.textContent = ''; err.classList.remove('show');
+  if(!name){ err.textContent = 'Name required'; err.classList.add('show'); return; }
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err.textContent = 'Valid email required'; err.classList.add('show'); return; }
   try{
-    const r=await fetch(`${API}/api/users/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
-    const d=await r.json();
+    const r = await fetch(`${API}/api/users/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
+    const d = await r.json();
     if(d.success){
-      currentUser=d.user; localStorage.setItem('vmUser',JSON.stringify(currentUser));
-      closeModal('loginModal'); updateNavUser();
-      toast(d.is_new?`Welcome ${d.user.name}! Library created 🎉`:`Welcome back, ${d.user.name}!`);
+      currentUser = d.user;
+      localStorage.setItem('vmUser', JSON.stringify(currentUser));
+      closeModal('loginModal');
+      updateNavUser();
+      toast(d.is_new ? `Welcome ${d.user.name}! Library created 🎉` : `Welcome back, ${d.user.name}!`);
       loadLibrary();
-    } else {err.textContent=d.error||'Error';err.classList.add('show');}
-  } catch(e){err.textContent='Server error';err.classList.add('show');}
+    } else { err.textContent = d.error||'Error'; err.classList.add('show'); }
+  } catch(e){ err.textContent = 'Server error'; err.classList.add('show'); }
 }
 
 function logout(){
-  currentUser=null; localStorage.removeItem('vmUser'); updateNavUser();
-  document.getElementById('libGrid').innerHTML='<div class="empty">Login to see your library</div>';
+  currentUser = null;
+  localStorage.removeItem('vmUser');
+  updateNavUser();
+  document.getElementById('libGrid').innerHTML = '<div class="empty">Login to see your library</div>';
   toast('Logged out');
 }
 
 // ── LIBRARY ───────────────────────────────────────────
 async function loadLibrary(){
-  const grid=document.getElementById('libGrid');
-  if(!currentUser){grid.innerHTML='<div class="empty">Login to see your library</div>';return;}
-  const loader=document.getElementById('libLoader');
-  loader.classList.add('active'); grid.innerHTML='';
+  const grid = document.getElementById('libGrid');
+  if(!currentUser){ grid.innerHTML = '<div class="empty">Login to see your library</div>'; return; }
+  const loader = document.getElementById('libLoader');
+  loader.classList.add('active'); grid.innerHTML = '';
   try{
-    const r=await fetch(`${API}/api/videos?user_id=${currentUser.id}`);
-    const d=await r.json();
+    const r = await fetch(`${API}/api/videos?user_id=${currentUser.id}`);
+    const d = await r.json();
     if(d.success){
-      if(!d.videos.length) grid.innerHTML='<div class="empty">No videos yet — paste a URL above!</div>';
-      else d.videos.forEach(v=>grid.appendChild(makeCard(v,true)));
+      if(!d.videos.length) grid.innerHTML = '<div class="empty">No videos yet — paste a URL above!</div>';
+      else d.videos.forEach(v => grid.appendChild(makeCard(v, true)));
     }
-  } catch(e){toast('Error loading library',true);}
-  finally{loader.classList.remove('active');}
+  } catch(e){ toast('Error loading library', true); }
+  finally{ loader.classList.remove('active'); }
 }
 
 async function addVideo(){
-  if(!currentUser){openLoginModal();return;}
-  const inp=document.getElementById('videoUrl');
-  const url=inp.value.trim();
-  if(!url){toast('Please enter a URL',true);return;}
+  if(!currentUser){ openLoginModal(); return; }
+  const inp = document.getElementById('videoUrl');
+  const url = inp.value.trim();
+  if(!url){ toast('Please enter a URL', true); return; }
   try{
-    const r=await fetch(`${API}/api/videos/add`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,email:currentUser.email})});
-    const d=await r.json();
-    if(d.success){toast('✅ Video added!');inp.value='';loadLibrary();}
-    else toast(d.error||'Failed',true);
-  } catch(e){toast('Error adding video',true);}
+    const r = await fetch(`${API}/api/videos/add`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,email:currentUser.email})});
+    const d = await r.json();
+    if(d.success){ toast('✅ Video added!'); inp.value = ''; loadLibrary(); }
+    else toast(d.error||'Failed', true);
+  } catch(e){ toast('Error adding video', true); }
 }
 
 // ── ALL VIDEOS ─────────────────────────────────────────
 async function loadAllVideos(){
-  const grid=document.getElementById('allGrid');
-  const loader=document.getElementById('allLoader');
-  loader.classList.add('active'); grid.innerHTML='';
+  const grid = document.getElementById('allGrid');
+  const loader = document.getElementById('allLoader');
+  loader.classList.add('active'); grid.innerHTML = '';
   try{
-    const [vr,ur]=await Promise.all([
+    const [vr, ur] = await Promise.all([
       fetch(`${API}/api/videos`).then(r=>r.json()),
       fetch(`${API}/api/users`).then(r=>r.json())
     ]);
-    allLibUsers=ur.users||[];
+    allLibUsers = ur.users || [];
     buildLibTabs(allLibUsers);
     if(vr.success){
-      if(!vr.videos.length) grid.innerHTML='<div class="empty">No videos yet</div>';
-      else vr.videos.forEach(v=>grid.appendChild(makeCard(v,false)));
+      if(!vr.videos.length) grid.innerHTML = '<div class="empty">No videos yet</div>';
+      else {
+        vr.videos.forEach(v => {
+          // Show Watch button for logged-in users on All Videos page too
+          grid.appendChild(makeCard(v, !!currentUser));
+        });
+      }
     }
-  } catch(e){toast('Error loading',true);}
-  finally{loader.classList.remove('active');}
+  } catch(e){ toast('Error loading', true); }
+  finally{ loader.classList.remove('active'); }
 }
 
 function buildLibTabs(users){
-  const tabs=document.getElementById('libFilterTabs');
-  tabs.innerHTML=`<button class="lib-tab active" onclick="filterByLib(null,this)">All</button>`;
-  users.forEach(u=>{
-    const b=document.createElement('button');
-    b.className='lib-tab';
-    b.textContent=`${u.name} (${u.video_count})`;
-    b.onclick=()=>filterByLib(u.id,b);
+  const tabs = document.getElementById('libFilterTabs');
+  tabs.innerHTML = `<button class="lib-tab active" onclick="filterByLib(null,this)">All</button>`;
+  users.forEach(u => {
+    const b = document.createElement('button');
+    b.className = 'lib-tab';
+    b.textContent = `${u.name} (${u.video_count})`;
+    b.onclick = () => filterByLib(u.id, b);
     tabs.appendChild(b);
   });
 }
 
-function filterByLib(userId,btn){
+function filterByLib(userId, btn){
   document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('#allGrid .video-card').forEach(c=>{
-    c.style.display=(!userId||c.dataset.userId===userId)?'':'none';
+    c.style.display = (!userId || c.dataset.userId === userId) ? '' : 'none';
   });
 }
 
-// ── CARD VIDEO PLAYBACK (one at a time) ───────────────
+// ── CARD PLAY BUTTON → opens Watch modal with timer ────
+// Both the card ▶ overlay AND the "Watch" button call startWatching.
+// This ensures every play is tracked. No inline embed without a session.
 function playCardVideo(videoId, embedUrl){
-  // If the watch-modal session is active, block card playback entirely
-  if(watchVideoId){
-    toast('⚠️ Stop the current session first!', true);
-    openModal('watchModal');
+  // If not logged in, just play inline without tracking
+  if(!currentUser){
+    if(watchVideoId){ toast('⚠️ Stop the current session first!', true); openModal('watchModal'); return; }
+    const wrapper = document.getElementById('wrapper-' + videoId);
+    if(!wrapper) return;
+    if(activeCardIframe){
+      activeCardIframe.src = '';
+      const pw = activeCardIframe.closest('.video-wrapper');
+      if(pw){ activeCardIframe.remove(); const po=pw.querySelector('.play-overlay'),pt=pw.querySelector('.video-thumb'); if(po)po.style.display='flex'; if(pt)pt.style.display=''; }
+      activeCardIframe = null;
+    }
+    const overlay = wrapper.querySelector('.play-overlay');
+    const thumb   = wrapper.querySelector('.video-thumb');
+    if(overlay) overlay.style.display = 'none';
+    if(thumb)   thumb.style.display   = 'none';
+    const iframe = document.createElement('iframe');
+    iframe.src = embedUrl + '?autoplay=1&rel=0';
+    iframe.setAttribute('frameborder','0');
+    iframe.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+    iframe.setAttribute('allowfullscreen','');
+    iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none';
+    wrapper.appendChild(iframe);
+    activeCardIframe = iframe;
     return;
   }
-  const wrapper = document.getElementById('wrapper-'+videoId);
-  if(!wrapper) return;
-
-  // Stop & remove the previously active card iframe
-  if(activeCardIframe){
-    const prev = activeCardIframe;
-    prev.src = '';          // stops YouTube playback
-    // Restore thumbnail + overlay in the previous wrapper
-    const prevWrapper = prev.closest('.video-wrapper');
-    if(prevWrapper){
-      prev.remove();
-      prevWrapper.querySelector('.play-overlay').style.display = 'flex';
-      prevWrapper.querySelector('.video-thumb') && (prevWrapper.querySelector('.video-thumb').style.display = '');
-    }
-    activeCardIframe = null;
-  }
-
-  // Hide overlay and thumb, inject iframe
-  const overlay = wrapper.querySelector('.play-overlay');
-  const thumb   = wrapper.querySelector('.video-thumb');
-  if(overlay) overlay.style.display = 'none';
-  if(thumb)   thumb.style.display   = 'none';
-
-  const iframe = document.createElement('iframe');
-  iframe.src = embedUrl + '?autoplay=1';
-  iframe.setAttribute('frameborder','0');
-  iframe.setAttribute('allow','accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture');
-  iframe.setAttribute('allowfullscreen','');
-  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none';
-  wrapper.appendChild(iframe);
-  activeCardIframe = iframe;
-
-  // Count the view
-  fetch(`${API}/api/videos/view`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:videoId})});
+  // Logged-in: route through the Watch modal so time is always tracked
+  startWatching(videoId, embedUrl);
 }
 
+function isNew(iso){ return (Date.now() - new Date(iso).getTime()) < 86400000; }
 
-function isNew(iso){ return (Date.now()-new Date(iso).getTime())<86400000; }
-
-function makeCard(v,showWatch){
-  const card=document.createElement('div');
-  card.className='video-card'; card.dataset.userId=v.user_id||'';
-  const newTag=isNew(v.created_at)?`<span class="tag-new">🆕 NEW</span>`:'';
-  const libBadge=v.library_name?`<div class="lib-badge">📚 ${esc(v.library_name)}</div>`:'';
-  const watchBtn=(showWatch&&currentUser)?`<button class="btn-sm btn-watch" onclick="startWatching('${v._id}','${esc(v.embed_url)}')">▶ Watch</button>`:'';
-  card.innerHTML=`
+function makeCard(v, showWatch){
+  const card = document.createElement('div');
+  card.className = 'video-card';
+  card.dataset.userId = v.user_id || '';
+  const newTag = isNew(v.created_at) ? `<span class="tag-new">🆕 NEW</span>` : '';
+  const libBadge = v.library_name ? `<div class="lib-badge">📚 ${esc(v.library_name)}</div>` : '';
+  // Watch button only if logged in
+  const watchBtn = (showWatch && currentUser)
+    ? `<button class="btn-sm btn-watch" onclick="startWatching('${v._id}','${esc(v.embed_url)}')">▶ Watch</button>`
+    : '';
+  card.innerHTML = `
     <div class="video-wrapper" id="wrapper-${v._id}">
       ${newTag}
       <span class="zoom-icon" onclick="event.stopPropagation();openTab('${esc(v.url)}')">🔍</span>
@@ -566,140 +574,173 @@ function makeCard(v,showWatch){
   return card;
 }
 
-// ── WATCH TIMER ────────────────────────────────────────
-function startWatching(videoId,embedUrl){
-  if(!currentUser){openLoginModal();return;}
-  // Block if a session is already running
+// ── WATCH TIMER SESSION ────────────────────────────────
+function startWatching(videoId, embedUrl){
+  if(!currentUser){ openLoginModal(); return; }
+  // Block if another session is already running
   if(watchVideoId){
-    toast('⚠️ A video is already playing — stop it first!',true);
-    openModal('watchModal'); // bring the active session back into view
+    toast('⚠️ A session is already running — stop it first!', true);
+    openModal('watchModal');
     return;
   }
-  // Stop any card iframe that might be playing
+  // Stop any inline card playback first
   if(activeCardIframe){
-    activeCardIframe.src='';
-    const prevWrapper=activeCardIframe.closest('.video-wrapper');
+    activeCardIframe.src = '';
+    const prevWrapper = activeCardIframe.closest('.video-wrapper');
     if(prevWrapper){
       activeCardIframe.remove();
-      prevWrapper.querySelector('.play-overlay')&&(prevWrapper.querySelector('.play-overlay').style.display='flex');
-      prevWrapper.querySelector('.video-thumb')&&(prevWrapper.querySelector('.video-thumb').style.display='');
+      const po = prevWrapper.querySelector('.play-overlay');
+      const pt = prevWrapper.querySelector('.video-thumb');
+      if(po) po.style.display = 'flex';
+      if(pt) pt.style.display = '';
     }
-    activeCardIframe=null;
+    activeCardIframe = null;
   }
-  watchVideoId=videoId;
-  watchSeconds=0;
-  watchSessionStart=new Date().toISOString(); // ← record wall-clock start
-  document.getElementById('watchFrame').src=embedUrl+'?autoplay=1';
-  document.getElementById('watchTimer').textContent='00:00:00';
+
+  watchVideoId = videoId;
+  watchSeconds = 0;
+  watchSessionStart = new Date().toISOString();
+  document.getElementById('watchFrame').src = embedUrl + '?autoplay=1&rel=0';
+  document.getElementById('watchTimer').textContent = '00:00:00';
   openModal('watchModal');
-  watchInterval=setInterval(()=>{
+
+  watchInterval = setInterval(()=>{
     watchSeconds++;
-    const h=String(Math.floor(watchSeconds/3600)).padStart(2,'0');
-    const m=String(Math.floor((watchSeconds%3600)/60)).padStart(2,'0');
-    const s=String(watchSeconds%60).padStart(2,'0');
-    document.getElementById('watchTimer').textContent=`${h}:${m}:${s}`;
-  },1000);
+    const h = String(Math.floor(watchSeconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((watchSeconds % 3600) / 60)).padStart(2, '0');
+    const s = String(watchSeconds % 60).padStart(2, '0');
+    document.getElementById('watchTimer').textContent = `${h}:${m}:${s}`;
+  }, 1000);
 }
 
 async function stopWatching(){
   clearInterval(watchInterval);
-  document.getElementById('watchFrame').src='';
+  document.getElementById('watchFrame').src = '';
   closeModal('watchModal');
-  if(watchSeconds>2&&currentUser&&watchVideoId){
+  // Save session if watched for more than 2 seconds
+  if(watchSeconds > 2 && currentUser && watchVideoId){
     try{
-      await fetch(`${API}/api/history/record`,{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          user_id:currentUser.id,
-          video_id:watchVideoId,
-          seconds_watched:watchSeconds,
-          session_start:watchSessionStart   // ← send wall-clock start to server
-        })});
+      await fetch(`${API}/api/history/record`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          user_id: currentUser.id,
+          video_id: watchVideoId,
+          seconds_watched: watchSeconds,
+          session_start: watchSessionStart
+        })
+      });
       toast(`✅ Saved ${fmtTime(watchSeconds)} watch time`);
-    } catch(e){toast('Could not save watch time',true);}
+    } catch(e){ toast('Could not save watch time', true); }
   }
-  watchVideoId=null; watchSeconds=0; watchSessionStart=null;
+  watchVideoId = null; watchSeconds = 0; watchSessionStart = null;
 }
 
 // ── DELETE ─────────────────────────────────────────────
 function openDeleteModal(id){
-  currentDeleteId=id;
-  document.getElementById('deleteEmail').value='';
-  document.getElementById('deleteErr').textContent='';
+  currentDeleteId = id;
+  document.getElementById('deleteEmail').value = '';
+  document.getElementById('deleteErr').textContent = '';
   document.getElementById('deleteErr').classList.remove('show');
   openModal('deleteModal');
-  setTimeout(()=>document.getElementById('deleteEmail').focus(),80);
+  setTimeout(()=>document.getElementById('deleteEmail').focus(), 80);
 }
+
 async function confirmDelete(){
-  const email=document.getElementById('deleteEmail').value.trim().toLowerCase();
-  const err=document.getElementById('deleteErr');
-  err.textContent=''; err.classList.remove('show');
-  if(!email){err.textContent='Email required';err.classList.add('show');return;}
+  const email = document.getElementById('deleteEmail').value.trim().toLowerCase();
+  const err = document.getElementById('deleteErr');
+  err.textContent = ''; err.classList.remove('show');
+  if(!email){ err.textContent = 'Email required'; err.classList.add('show'); return; }
   try{
-    const r=await fetch(`${API}/api/videos/delete`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:currentDeleteId,email})});
-    const d=await r.json();
-    if(d.success){toast('🗑️ Deleted!');closeModal('deleteModal');loadLibrary();loadAllVideos();}
-    else{err.textContent=d.error||'Unauthorized';err.classList.add('show');}
-  } catch(e){err.textContent='Server error';err.classList.add('show');}
+    const r = await fetch(`${API}/api/videos/delete`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({video_id: currentDeleteId, email})
+    });
+    const d = await r.json();
+    if(d.success){ toast('🗑️ Deleted!'); closeModal('deleteModal'); loadLibrary(); loadAllVideos(); }
+    else { err.textContent = d.error||'Unauthorized'; err.classList.add('show'); }
+  } catch(e){ err.textContent = 'Server error'; err.classList.add('show'); }
 }
 
 // ── ANALYTICS PAGE ─────────────────────────────────────
 async function loadHistory(){
-  const loader=document.getElementById('histLoader');
+  const loader = document.getElementById('histLoader');
   loader.classList.add('active');
-  document.getElementById('statsGrid').innerHTML='';
-  document.getElementById('histTable').innerHTML='';
-  document.getElementById('chartsArea').style.display='none';
+  document.getElementById('userSections').innerHTML = '';
+  document.getElementById('histTable').innerHTML = '';
+  document.getElementById('chartsArea').style.display = 'none';
+
+  // Default: show logged-in user's data, or all if not logged in
+  selectedAnalyticsUserId = currentUser ? currentUser.id : null;
+
   try{
-    const [hr,ar]=await Promise.all([
+    const [hr, ar] = await Promise.all([
       fetch(`${API}/api/history`).then(r=>r.json()),
-      fetch(`${API}/api/analytics?days=${chartDays}`).then(r=>r.json())
+      fetch(`${API}/api/analytics?days=${chartDays}${selectedAnalyticsUserId ? '&user_id='+selectedAnalyticsUserId : ''}`).then(r=>r.json())
     ]);
-    if(!hr.success){toast('Error loading history',true);return;}
-    analyticsData=ar;
+    if(!hr.success){ toast('Error loading history', true); return; }
 
-    // populate user filter select
-    const sel=document.getElementById('chartUserFilter');
-    sel.innerHTML='<option value="">All Users</option>';
-    (hr.user_stats||[]).forEach(u=>{
-      const o=document.createElement('option');
-      o.value=u.user_id; o.textContent=u.name;
-      sel.appendChild(o);
-    });
+    allUserStats = hr.user_stats || [];
+    const maxSec = allUserStats.reduce((m, u) => Math.max(m, u.total_seconds), 1);
 
-    // legend
-    buildLegend(hr.user_stats||[]);
+    // Build per-user sections
+    const sectionsEl = document.getElementById('userSections');
+    if(!allUserStats.length){
+      sectionsEl.innerHTML = '<div class="empty">No watch history yet</div>';
+    } else {
+      allUserStats.forEach((u, i) => {
+        const pct = Math.round((u.total_seconds / maxSec) * 100);
+        const color = PALETTE[i % PALETTE.length][0];
+        const isMe = currentUser && u.user_id === currentUser.id;
+        const isSelected = u.user_id === selectedAnalyticsUserId;
 
-    // stat cards
-    const maxSec=(hr.user_stats||[]).reduce((m,u)=>Math.max(m,u.total_seconds),1);
-    const grid=document.getElementById('statsGrid');
-    if(!hr.user_stats.length){ grid.innerHTML='<div class="empty">No watch history yet</div>'; }
-    else{
-      hr.user_stats.forEach((u,i)=>{
-        const pct=Math.round((u.total_seconds/maxSec)*100);
-        const card=document.createElement('div');
-        card.className='stat-card';
-        card.innerHTML=`
-          <div class="uname">👤 ${esc(u.name)}</div>
-          <div class="uemail">${esc(u.email)}</div>
-          <div class="stat-row"><span>Total Watch Time</span><span>${fmtTime(u.total_seconds)}</span></div>
-          <div class="stat-row"><span>Videos Watched</span><span>${u.videos_watched}</span></div>
-          <div class="stat-row"><span>Last Active</span><span>${u.last_watched?timeAgo(u.last_watched):'Never'}</span></div>
-          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
-        card.onclick=()=>filterChartsToUser(u.user_id,card);
-        grid.appendChild(card);
+        const section = document.createElement('div');
+        section.className = 'analytics-user-section';
+        section.id = 'usersec-' + u.user_id;
+
+        const initial = u.name.charAt(0).toUpperCase();
+        section.innerHTML = `
+          <div class="analytics-user-header ${isSelected ? 'selected' : ''}"
+               id="uhdr-${u.user_id}"
+               onclick="selectAnalyticsUser('${u.user_id}', '${esc(u.name)}')">
+            <div class="user-avatar" style="background:linear-gradient(45deg,${color},${PALETTE[(i+1)%PALETTE.length][0]})">${initial}</div>
+            <div class="user-header-info">
+              <div class="user-header-name">👤 ${esc(u.name)} ${isMe ? '<span style="font-size:10px;background:rgba(64,224,208,.2);color:#40e0d0;padding:2px 8px;border-radius:9px;margin-left:6px">You</span>' : ''}</div>
+              <div class="user-header-email">${esc(u.email)}</div>
+              <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+            </div>
+            <div class="user-header-stats">
+              <div class="user-header-stat">
+                <div class="val">${fmtTime(u.total_seconds)}</div>
+                <div class="lbl">Watch Time</div>
+              </div>
+              <div class="user-header-stat">
+                <div class="val">${u.videos_watched}</div>
+                <div class="lbl">Videos</div>
+              </div>
+              <div class="user-header-stat">
+                <div class="val">${u.last_watched ? timeAgo(u.last_watched) : 'Never'}</div>
+                <div class="lbl">Last Active</div>
+              </div>
+            </div>
+            ${isSelected ? '<span class="user-section-badge">📊 Viewing Charts</span>' : ''}
+          </div>`;
+        sectionsEl.appendChild(section);
       });
     }
 
-    // charts
-    document.getElementById('chartsArea').style.display='block';
+    // Render charts for default selected user
+    document.getElementById('chartsArea').style.display = 'block';
+    updateActiveFilterLabel();
     renderCharts(ar);
 
-    // video table
+    // Video table (all users)
+    const tb = document.getElementById('histTable');
     if(hr.video_details.length){
-      const tb=document.getElementById('histTable');
-      hr.video_details.forEach(row=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
+      hr.video_details.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
           <td><img class="thumb-sm" src="https://img.youtube.com/vi/${ytId(row.url)}/mqdefault.jpg" onerror="this.src=''"></td>
           <td>${esc(row.user_name)}</td>
           <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(row.url)}">${esc(row.url)}</td>
@@ -710,162 +751,184 @@ async function loadHistory(){
       });
     }
 
-  } catch(e){ toast('Error loading analytics',true); console.error(e); }
+  } catch(e){ toast('Error loading analytics', true); console.error(e); }
   finally{ loader.classList.remove('active'); }
 }
 
-function buildLegend(users){
-  const row=document.getElementById('legendRow');
-  row.innerHTML='';
-  users.forEach((u,i)=>{
-    const color=PALETTE[i%PALETTE.length][0];
-    const item=document.createElement('div');
-    item.className='legend-item';
-    item.innerHTML=`<span class="legend-dot" style="background:${color}"></span>${esc(u.name)}`;
-    row.appendChild(item);
-  });
+function updateActiveFilterLabel(){
+  const lbl = document.getElementById('activeFilterLabel');
+  if(!selectedAnalyticsUserId){
+    lbl.textContent = 'All Users';
+  } else {
+    const u = allUserStats.find(u => u.user_id === selectedAnalyticsUserId);
+    lbl.textContent = u ? `📊 ${u.name}` : 'Filtered';
+  }
 }
 
-function setDays(d,btn){
-  chartDays=d;
-  document.querySelectorAll('.ctrl-btn').forEach(b=>{ b.classList.remove('ctrl-btn-active'); b.classList.add('ctrl-btn'); });
+async function selectAnalyticsUser(userId, userName){
+  // Toggle: clicking same user deselects (shows all)
+  if(selectedAnalyticsUserId === userId){
+    selectedAnalyticsUserId = null;
+  } else {
+    selectedAnalyticsUserId = userId;
+  }
+
+  // Update header highlight states
+  document.querySelectorAll('.analytics-user-header').forEach(h => {
+    h.classList.remove('selected');
+    // Remove badge
+    const badge = h.querySelector('.user-section-badge');
+    if(badge) badge.remove();
+  });
+  if(selectedAnalyticsUserId){
+    const hdr = document.getElementById('uhdr-' + selectedAnalyticsUserId);
+    if(hdr){
+      hdr.classList.add('selected');
+      const badge = document.createElement('span');
+      badge.className = 'user-section-badge';
+      badge.textContent = '📊 Viewing Charts';
+      hdr.appendChild(badge);
+    }
+  }
+
+  updateActiveFilterLabel();
+  await reloadCharts();
+}
+
+function clearUserFilter(){
+  selectedAnalyticsUserId = null;
+  document.querySelectorAll('.analytics-user-header').forEach(h => {
+    h.classList.remove('selected');
+    const badge = h.querySelector('.user-section-badge');
+    if(badge) badge.remove();
+  });
+  updateActiveFilterLabel();
+  reloadCharts();
+}
+
+function setDays(d, btn){
+  chartDays = d;
+  document.querySelectorAll('.ctrl-btn').forEach(b => { b.classList.remove('ctrl-btn-active'); b.classList.add('ctrl-btn'); });
   btn.classList.add('ctrl-btn-active'); btn.classList.remove('ctrl-btn');
   reloadCharts();
 }
 
 async function reloadCharts(){
-  const uid=document.getElementById('chartUserFilter').value;
-  const url=`${API}/api/analytics?days=${chartDays}${uid?'&user_id='+uid:''}`;
+  const uid = selectedAnalyticsUserId || '';
+  const url = `${API}/api/analytics?days=${chartDays}${uid ? '&user_id='+uid : ''}`;
   try{
-    const r=await fetch(url);
-    const d=await r.json();
-    if(d.success){ analyticsData=d; renderCharts(d); }
-  } catch(e){ toast('Error loading charts',true); }
-}
-
-function filterChartsToUser(userId,card){
-  // toggle selection
-  const wasSelected=card.classList.contains('selected');
-  document.querySelectorAll('.stat-card').forEach(c=>c.classList.remove('selected'));
-  if(!wasSelected){
-    card.classList.add('selected');
-    document.getElementById('chartUserFilter').value=userId;
-  } else {
-    document.getElementById('chartUserFilter').value='';
-  }
-  reloadCharts();
+    const r = await fetch(url);
+    const d = await r.json();
+    if(d.success){ analyticsData = d; renderCharts(d); }
+  } catch(e){ toast('Error loading charts', true); }
 }
 
 // ── CHART RENDERING ────────────────────────────────────
 function renderCharts(data){
-  renderBarChart(data.day_data||[]);
-  renderLineChart(data.hour_data||[]);
-  renderSessionsFeed(data.sessions||[]);
+  renderBarChart(data.day_data || []);
+  renderLineChart(data.hour_data || []);
+  renderSessionsFeed(data.sessions || []);
 }
 
 function renderBarChart(dayData){
-  // Collect unique users and dates
-  const userNames=[...new Set(dayData.map(r=>r.user_name))];
-  const allDays=[...new Set(dayData.map(r=>r.day))].sort();
+  const userNames = [...new Set(dayData.map(r => r.user_name))];
+  const allDays   = [...new Set(dayData.map(r => r.day))].sort();
 
   if(!allDays.length){
-    if(chartBarInstance){chartBarInstance.destroy();chartBarInstance=null;}
-    document.getElementById('barSubtitle').textContent='— no data';
+    if(chartBarInstance){ chartBarInstance.destroy(); chartBarInstance = null; }
+    document.getElementById('barSubtitle').textContent = '— no data';
     return;
   }
-  document.getElementById('barSubtitle').textContent=`last ${chartDays} days`;
+  document.getElementById('barSubtitle').textContent = `last ${chartDays} days`;
 
-  const datasets=userNames.map((uname,i)=>{
-    const [border,bg]=PALETTE[i%PALETTE.length];
+  const datasets = userNames.map((uname, i) => {
+    const [border, bg] = PALETTE[i % PALETTE.length];
     return {
       label: uname,
-      data: allDays.map(day=>{
-        const row=dayData.find(r=>r.user_name===uname&&r.day===day);
-        return row?+(row.total_seconds/3600).toFixed(2):0;
+      data: allDays.map(day => {
+        const row = dayData.find(r => r.user_name === uname && r.day === day);
+        return row ? +(row.total_seconds / 3600).toFixed(2) : 0;
       }),
-      backgroundColor: bg,
-      borderColor: border,
-      borderWidth: 2,
-      borderRadius: 5,
+      backgroundColor: bg, borderColor: border,
+      borderWidth: 2, borderRadius: 5,
     };
   });
 
-  const ctx=document.getElementById('chartBar').getContext('2d');
+  const ctx = document.getElementById('chartBar').getContext('2d');
   if(chartBarInstance) chartBarInstance.destroy();
-  chartBarInstance=new Chart(ctx,{
-    type:'bar',
-    data:{labels:allDays.map(d=>d.slice(5)),datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:userNames.length>1,labels:{color:'rgba(255,255,255,.7)',font:{size:11}}},
-        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}h`}}},
-      scales:{
-        x:{ticks:{color:'rgba(255,255,255,.55)',font:{size:10}},grid:{color:'rgba(255,255,255,.06)'}},
-        y:{ticks:{color:'rgba(255,255,255,.55)',font:{size:10},callback:v=>`${v}h`},
-          grid:{color:'rgba(255,255,255,.08)'},title:{display:true,text:'Hours',color:'rgba(255,255,255,.4)',font:{size:11}}}
+  chartBarInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: allDays.map(d => d.slice(5)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: userNames.length > 1, labels: { color: 'rgba(255,255,255,.7)', font: {size:11} }},
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}h` }}
+      },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:10} }, grid: { color: 'rgba(255,255,255,.06)' }},
+        y: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:10}, callback: v => `${v}h` },
+             grid: { color: 'rgba(255,255,255,.08)' },
+             title: { display: true, text: 'Hours', color: 'rgba(255,255,255,.4)', font:{size:11} }}
       }
     }
   });
 }
 
 function renderLineChart(hourData){
-  const userNames=[...new Set(hourData.map(r=>r.user_name))];
-  const hours=Array.from({length:24},(_,i)=>i);
+  const userNames = [...new Set(hourData.map(r => r.user_name))];
+  const hours = Array.from({length:24}, (_, i) => i);
 
   if(!hourData.length){
-    if(chartLineInstance){chartLineInstance.destroy();chartLineInstance=null;}
-    document.getElementById('lineSubtitle').textContent='— no data';
+    if(chartLineInstance){ chartLineInstance.destroy(); chartLineInstance = null; }
+    document.getElementById('lineSubtitle').textContent = '— no data';
     return;
   }
-  document.getElementById('lineSubtitle').textContent=`last ${chartDays} days`;
+  document.getElementById('lineSubtitle').textContent = `last ${chartDays} days`;
 
-  const datasets=userNames.map((uname,i)=>{
-    const [border,bg]=PALETTE[i%PALETTE.length];
+  const datasets = userNames.map((uname, i) => {
+    const [border, bg] = PALETTE[i % PALETTE.length];
     return {
       label: uname,
-      data: hours.map(h=>{
-        const row=hourData.find(r=>r.user_name===uname&&r.hour===h);
-        return row?+(row.total_seconds/60).toFixed(1):0;
+      data: hours.map(h => {
+        const row = hourData.find(r => r.user_name === uname && r.hour === h);
+        return row ? +(row.total_seconds / 60).toFixed(1) : 0;
       }),
-      borderColor: border,
-      backgroundColor: bg,
-      borderWidth: 2.5,
-      pointRadius: 3,
-      pointHoverRadius: 5,
-      tension: 0.38,
-      fill: true,
+      borderColor: border, backgroundColor: bg,
+      borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 5,
+      tension: 0.38, fill: true,
     };
   });
 
-  const ctx=document.getElementById('chartLine').getContext('2d');
+  const ctx = document.getElementById('chartLine').getContext('2d');
   if(chartLineInstance) chartLineInstance.destroy();
-  chartLineInstance=new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:hours.map(h=>`${String(h).padStart(2,'0')}:00`),
-      datasets
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:userNames.length>1,labels:{color:'rgba(255,255,255,.7)',font:{size:11}}},
-        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}m`}}},
-      scales:{
-        x:{ticks:{color:'rgba(255,255,255,.55)',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,.06)'}},
-        y:{ticks:{color:'rgba(255,255,255,.55)',font:{size:10},callback:v=>`${v}m`},
-          grid:{color:'rgba(255,255,255,.08)'},title:{display:true,text:'Minutes',color:'rgba(255,255,255,.4)',font:{size:11}}}
+  chartLineInstance = new Chart(ctx, {
+    type: 'line',
+    data: { labels: hours.map(h => `${String(h).padStart(2,'0')}:00`), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: userNames.length > 1, labels: { color: 'rgba(255,255,255,.7)', font:{size:11} }},
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}m` }}
+      },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:9}, maxRotation:45 }, grid: { color: 'rgba(255,255,255,.06)' }},
+        y: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:10}, callback: v => `${v}m` },
+             grid: { color: 'rgba(255,255,255,.08)' },
+             title: { display: true, text: 'Minutes', color: 'rgba(255,255,255,.4)', font:{size:11} }}
       }
     }
   });
 }
 
 function renderSessionsFeed(sessions){
-  const feed=document.getElementById('sessionsFeed');
-  if(!sessions.length){feed.innerHTML='<div class="empty">No sessions recorded yet</div>';return;}
-  feed.innerHTML='';
-  sessions.slice(0,30).forEach(s=>{
-    const item=document.createElement('div');
-    item.className='session-item';
-    item.innerHTML=`
+  const feed = document.getElementById('sessionsFeed');
+  if(!sessions.length){ feed.innerHTML = '<div class="empty">No sessions recorded yet</div>'; return; }
+  feed.innerHTML = '';
+  sessions.slice(0, 30).forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'session-item';
+    item.innerHTML = `
       <img class="session-thumb" src="https://img.youtube.com/vi/${ytId(s.url)}/mqdefault.jpg" onerror="this.src=''">
       <div class="session-info">
         <div class="session-user">👤 ${esc(s.user_name)}</div>
@@ -881,49 +944,49 @@ function renderSessionsFeed(sessions){
 
 // ── HELPERS ────────────────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function openTab(url){ window.open(url,'_blank','noopener,noreferrer'); }
+function openTab(url){ window.open(url, '_blank', 'noopener,noreferrer'); }
 
 function fmtTime(sec){
-  sec=parseInt(sec)||0;
-  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
+  sec = parseInt(sec) || 0;
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
   if(h) return `${h}h ${m}m`;
   if(m) return `${m}m ${s}s`;
   return `${s}s`;
 }
 
 function timeAgo(iso){
-  const diff=Date.now()-new Date(iso);
-  if(diff<60000) return 'Just now';
-  if(diff<3600000) return `${Math.floor(diff/60000)}m ago`;
-  if(diff<86400000) return `${Math.floor(diff/3600000)}h ago`;
+  const diff = Date.now() - new Date(iso);
+  if(diff < 60000) return 'Just now';
+  if(diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+  if(diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
   return `${Math.floor(diff/86400000)}d ago`;
 }
 
 function ytId(url){
   try{
-    const u=new URL(url);
-    if(u.hostname.includes('youtube.com')) return u.searchParams.get('v')||'';
+    const u = new URL(url);
+    if(u.hostname.includes('youtube.com')) return u.searchParams.get('v') || '';
     if(u.hostname.includes('youtu.be')) return u.pathname.slice(1);
   } catch(e){}
   return '';
 }
 
-function toast(msg,isErr=false){
-  const t=document.createElement('div');
-  t.className=`toast ${isErr?'err':'ok'}`;
-  t.textContent=msg;
+function toast(msg, isErr = false){
+  const t = document.createElement('div');
+  t.className = `toast ${isErr ? 'err' : 'ok'}`;
+  t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(()=>t.remove(),3000);
+  setTimeout(() => t.remove(), 3000);
 }
 
 // ── KEYBOARD + OVERLAY CLOSE ───────────────────────────
-document.getElementById('videoUrl')?.addEventListener('keypress',e=>{if(e.key==='Enter')addVideo();});
-document.getElementById('deleteEmail').addEventListener('keypress',e=>{if(e.key==='Enter')confirmDelete();});
-document.getElementById('loginEmail').addEventListener('keypress',e=>{if(e.key==='Enter')confirmLogin();});
-['loginModal','deleteModal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal(id);});
+document.getElementById('videoUrl')?.addEventListener('keypress', e => { if(e.key==='Enter') addVideo(); });
+document.getElementById('deleteEmail').addEventListener('keypress', e => { if(e.key==='Enter') confirmDelete(); });
+document.getElementById('loginEmail').addEventListener('keypress', e => { if(e.key==='Enter') confirmLogin(); });
+['loginModal','deleteModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(id); });
 });
-document.getElementById('watchModal').addEventListener('click',e=>{if(e.target===e.currentTarget)stopWatching();});
+document.getElementById('watchModal').addEventListener('click', e => { if(e.target===e.currentTarget) stopWatching(); });
 </script>
 </body>
 </html>
