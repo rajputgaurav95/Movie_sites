@@ -262,6 +262,8 @@ async def delete_video(request):
         return web.json_response({'error': str(e)}, status=500)
 
 
+# NOTE: update_views kept for backward compatibility but NOT called for watch sessions
+# Views are now incremented in record_watch only
 async def update_views(request):
     conn = get_db_connection()
     if not conn:
@@ -307,7 +309,8 @@ async def get_video_stats(request):
 async def record_watch(request):
     """
     POST body: { user_id, video_id, seconds_watched, session_start (ISO) }
-    session_start = wall-clock time user clicked ▶ Watch
+    session_start = wall-clock time user clicked Play
+    Views on the video are incremented here (once per completed watch session).
     """
     conn = get_db_connection()
     if not conn:
@@ -324,10 +327,17 @@ async def record_watch(request):
             ss = datetime.fromisoformat(ss_iso.replace('Z', '+00:00'))
         except Exception:
             ss = datetime.utcnow()
+
+        vid_uuid = str(uuid.UUID(vid))
+        uid_uuid = str(uuid.UUID(uid))
+
         cur = conn.cursor()
+        # Insert watch session
         cur.execute('''INSERT INTO watch_history(user_id,video_id,seconds_watched,session_start,watched_at)
             VALUES(%s,%s,%s,%s,NOW())''',
-            (str(uuid.UUID(uid)), str(uuid.UUID(vid)), secs, ss))
+            (uid_uuid, vid_uuid, secs, ss))
+        # Increment view count on the video (once per session)
+        cur.execute('UPDATE videos SET views=views+1 WHERE id=%s', (vid_uuid,))
         conn.commit(); cur.close()
         return web.json_response({'success': True})
     except Exception as e:
@@ -340,21 +350,44 @@ async def get_history(request):
     if not conn:
         return web.json_response({'error': 'DB not connected'}, status=503)
     try:
+        # Optional: filter by user_id
+        uid = request.rel_url.query.get('user_id')
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute('''SELECT u.id,u.name,u.email,
-            COALESCE(SUM(wh.seconds_watched),0) as total_seconds,
-            COUNT(DISTINCT wh.video_id) as videos_watched,
-            MAX(wh.watched_at) as last_watched
-            FROM users u LEFT JOIN watch_history wh ON wh.user_id=u.id
-            GROUP BY u.id ORDER BY total_seconds DESC''')
+
+        if uid:
+            cur.execute('''SELECT u.id,u.name,u.email,
+                COALESCE(SUM(wh.seconds_watched),0) as total_seconds,
+                COUNT(DISTINCT wh.video_id) as videos_watched,
+                MAX(wh.watched_at) as last_watched
+                FROM users u LEFT JOIN watch_history wh ON wh.user_id=u.id
+                WHERE u.id=%s
+                GROUP BY u.id ORDER BY total_seconds DESC''', (uid,))
+        else:
+            cur.execute('''SELECT u.id,u.name,u.email,
+                COALESCE(SUM(wh.seconds_watched),0) as total_seconds,
+                COUNT(DISTINCT wh.video_id) as videos_watched,
+                MAX(wh.watched_at) as last_watched
+                FROM users u LEFT JOIN watch_history wh ON wh.user_id=u.id
+                GROUP BY u.id ORDER BY total_seconds DESC''')
         us = cur.fetchall()
-        cur.execute('''SELECT wh.user_id,u.name as user_name,wh.video_id,
-            v.url,v.embed_url,v.thumbnail,v.added_by,
-            SUM(wh.seconds_watched) as total_seconds,
-            COUNT(*) as session_count, MAX(wh.watched_at) as last_watched
-            FROM watch_history wh JOIN users u ON u.id=wh.user_id JOIN videos v ON v.id=wh.video_id
-            GROUP BY wh.user_id,u.name,wh.video_id,v.url,v.embed_url,v.thumbnail,v.added_by
-            ORDER BY last_watched DESC''')
+
+        if uid:
+            cur.execute('''SELECT wh.user_id,u.name as user_name,wh.video_id,
+                v.url,v.embed_url,v.thumbnail,v.added_by,
+                SUM(wh.seconds_watched) as total_seconds,
+                COUNT(*) as session_count, MAX(wh.watched_at) as last_watched
+                FROM watch_history wh JOIN users u ON u.id=wh.user_id JOIN videos v ON v.id=wh.video_id
+                WHERE wh.user_id=%s
+                GROUP BY wh.user_id,u.name,wh.video_id,v.url,v.embed_url,v.thumbnail,v.added_by
+                ORDER BY last_watched DESC''', (uid,))
+        else:
+            cur.execute('''SELECT wh.user_id,u.name as user_name,wh.video_id,
+                v.url,v.embed_url,v.thumbnail,v.added_by,
+                SUM(wh.seconds_watched) as total_seconds,
+                COUNT(*) as session_count, MAX(wh.watched_at) as last_watched
+                FROM watch_history wh JOIN users u ON u.id=wh.user_id JOIN videos v ON v.id=wh.video_id
+                GROUP BY wh.user_id,u.name,wh.video_id,v.url,v.embed_url,v.thumbnail,v.added_by
+                ORDER BY last_watched DESC''')
         vd = cur.fetchall(); cur.close()
         return web.json_response({'success': True,
             'user_stats': [{'user_id': str(r['id']), 'name': r['name'], 'email': r['email'],
@@ -463,5 +496,4 @@ def create_app():
 
 if __name__ == '__main__':
     print("🚀 Video Manager v3 — with analytics")
-    port = int(os.environ.get("PORT", 9000))
-    web.run_app(create_app(), host="0.0.0.0", port=port)
+    web.run_app(create_app(), host='0.0.0.0', port=9000)
