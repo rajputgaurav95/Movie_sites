@@ -3,188 +3,323 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Manager v3</title>
+<title>Video Manager v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+:root{
+  --bg:#080b14;--surface:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);
+  --pink:#ff2d78;--orange:#ff8c00;--cyan:#00e5ff;--green:#00ff88;--purple:#a855f7;
+  --text:#e8eaf0;--muted:rgba(232,234,240,.45);
+  --grad:linear-gradient(135deg,#ff2d78,#ff8c00);
+  --grad2:linear-gradient(135deg,#00e5ff,#a855f7);
+  --card-r:16px;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#fff;min-height:100vh}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 20% 10%,rgba(255,45,120,.07) 0,transparent 70%),
+  radial-gradient(ellipse 50% 35% at 80% 80%,rgba(0,229,255,.06) 0,transparent 70%);
+  pointer-events:none;z-index:0}
+h1,h2,h3,.brand{font-family:'Syne',sans-serif}
 
 /* ── NAV ── */
-.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(0,0,0,.45);backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,255,255,.1);position:sticky;top:0;z-index:200;flex-wrap:wrap;gap:10px}
-.nav-brand{font-size:1.3em;font-weight:800;background:linear-gradient(45deg,#ff0080,#ff8c00,#40e0d0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
-.nav-tabs{display:flex;gap:6px;flex-wrap:wrap}
-.nav-tab{padding:8px 18px;border-radius:30px;border:2px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.65);cursor:pointer;font-size:13px;font-weight:600;transition:all .22s;letter-spacing:.3px}
-.nav-tab:hover{border-color:#ff0080;color:#fff}
-.nav-tab.active{background:linear-gradient(45deg,#ff0080,#ff8c00);border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(255,0,128,.4)}
-.nav-user{display:flex;align-items:center;gap:10px}
-.user-chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:6px 14px;font-size:13px;display:flex;align-items:center;gap:7px}
-.user-chip .dot{width:8px;height:8px;border-radius:50%;background:#00ff88;flex-shrink:0}
-.btn-login{padding:8px 18px;background:linear-gradient(45deg,#ff0080,#ff8c00);border:none;border-radius:20px;color:#fff;font-weight:700;cursor:pointer;font-size:13px;transition:all .22s}
-.btn-login:hover{transform:scale(1.05);box-shadow:0 4px 14px rgba(255,0,128,.4)}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;
+  background:rgba(8,11,20,.8);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:500;flex-wrap:wrap;gap:10px}
+.brand{font-size:1.25em;font-weight:800;letter-spacing:-0.5px;
+  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.nav-tab{padding:7px 16px;border-radius:30px;border:1.5px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;font-size:13px;font-weight:600;
+  font-family:'DM Sans',sans-serif;transition:.2s}
+.nav-tab:hover{color:var(--text);border-color:rgba(255,255,255,.22)}
+.nav-tab.active{background:var(--grad);border-color:transparent;color:#fff;
+  box-shadow:0 4px 18px rgba(255,45,120,.35)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.user-chip{background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.22);
+  border-radius:20px;padding:6px 14px;font-size:12px;display:flex;align-items:center;gap:7px;color:var(--green)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+.btn-pill{padding:7px 18px;border-radius:24px;border:none;cursor:pointer;
+  font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:.2s;letter-spacing:.2px}
+.btn-pill.grad{background:var(--grad);color:#fff}
+.btn-pill.grad:hover{transform:scale(1.04);box-shadow:0 4px 16px rgba(255,45,120,.38)}
+.btn-pill.ghost{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--border)}
+.btn-pill.ghost:hover{background:rgba(255,255,255,.12);color:var(--text)}
+.btn-pill.danger{background:rgba(255,50,50,.12);color:#ff5555;border:1px solid rgba(255,50,50,.25)}
+.btn-pill.danger:hover{background:rgba(255,50,50,.22)}
 
 /* ── PAGES ── */
-.page{display:none;padding:24px 28px;max-width:1600px;margin:0 auto;animation:fadeIn .35s}
+.page{display:none;padding:28px;max-width:1600px;margin:0 auto;position:relative;z-index:1;
+  animation:fadeUp .35s ease}
 .page.active{display:block}
-.section-head{margin-bottom:24px}
-.section-head h2{font-size:1.8em;font-weight:800;background:linear-gradient(45deg,#ff0080,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}
-.section-head p{color:rgba(255,255,255,.45);font-size:13px}
+.ph{margin-bottom:26px}
+.ph h2{font-size:2em;font-weight:800;letter-spacing:-0.5px;
+  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.ph p{color:var(--muted);font-size:13px}
 
-/* ── GLASS CARD ── */
-.glass{background:rgba(255,255,255,.05);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:18px;padding:24px}
+/* ── CARD ── */
+.card{background:var(--surface);backdrop-filter:blur(12px);border:1px solid var(--border);
+  border-radius:var(--card-r);padding:22px}
 
 /* ── ADD FORM ── */
-.input-row{display:flex;gap:10px;flex-wrap:wrap}
-.input-row input{flex:1;min-width:240px;padding:13px 16px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.14);border-radius:10px;color:#fff;font-size:15px;transition:all .28s}
-.input-row input::placeholder{color:rgba(255,255,255,.38)}
-.input-row input:focus{outline:none;border-color:#ff0080;box-shadow:0 0 16px rgba(255,0,128,.2)}
-.btn{padding:13px 28px;background:linear-gradient(45deg,#ff0080,#ff8c00);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:all .28s;letter-spacing:.4px;white-space:nowrap}
-.btn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(255,0,128,.38)}
+.add-form-wrap{margin-bottom:24px}
+.url-preview-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.url-input-col{flex:1;min-width:260px}
+.url-input-col input{width:100%;padding:13px 16px;background:rgba(255,255,255,.06);
+  border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;
+  font-family:'DM Sans',sans-serif;transition:.25s}
+.url-input-col input::placeholder{color:var(--muted)}
+.url-input-col input:focus{outline:none;border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,45,120,.12)}
+.thumb-preview{width:120px;height:68px;border-radius:9px;object-fit:cover;
+  background:#111;border:1px solid var(--border);display:none;flex-shrink:0}
+.thumb-preview.show{display:block}
+.btn-add{padding:13px 26px;background:var(--grad);border:none;border-radius:12px;
+  color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:.25s;
+  font-family:'DM Sans',sans-serif;white-space:nowrap;flex-shrink:0}
+.btn-add:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,45,120,.38)}
 
-/* ── LIB FILTER TABS ── */
-.lib-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-.lib-tab{padding:7px 18px;border-radius:20px;border:2px solid rgba(255,255,255,.18);background:transparent;color:rgba(255,255,255,.6);cursor:pointer;font-size:13px;font-weight:600;transition:all .22s}
-.lib-tab:hover{border-color:#40e0d0;color:#fff}
-.lib-tab.active{background:linear-gradient(45deg,#40e0d0,#00bfff);border-color:transparent;color:#000;box-shadow:0 4px 12px rgba(64,224,208,.3)}
+/* ── LIB FILTER ── */
+.lib-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.lib-tab{padding:6px 16px;border-radius:20px;border:1.5px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;
+  font-family:'DM Sans',sans-serif;transition:.2s}
+.lib-tab:hover{border-color:var(--cyan);color:var(--text)}
+.lib-tab.active{background:var(--grad2);border-color:transparent;color:#000}
 
 /* ── VIDEO GRID ── */
-.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:22px}
-.video-card{background:rgba(255,255,255,.05);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;transition:all .28s;position:relative}
-.video-card:hover{transform:translateY(-4px);border-color:#ff0080;box-shadow:0 14px 36px rgba(255,0,128,.28)}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px}
+.video-card{background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:var(--card-r);overflow:hidden;transition:.25s;position:relative}
+.video-card:hover{transform:translateY(-3px);border-color:rgba(255,45,120,.35);
+  box-shadow:0 16px 40px rgba(255,45,120,.14)}
 .video-wrapper{position:relative;width:100%;padding-bottom:56.25%;background:#000;cursor:pointer}
 .video-wrapper iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
-.video-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);transition:background .22s}
-.play-overlay:hover{background:rgba(0,0,0,.15)}
-.play-btn-circle{width:56px;height:56px;border-radius:50%;background:rgba(255,0,128,.85);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 18px rgba(255,0,128,.5);transition:transform .22s}
-.play-overlay:hover .play-btn-circle{transform:scale(1.12)}
-.tag-new{position:absolute;top:9px;left:9px;background:linear-gradient(45deg,#00ff88,#00cc66);color:#000;font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;z-index:10;letter-spacing:.4px;box-shadow:0 3px 10px rgba(0,255,136,.4);animation:pulse 1.5s infinite}
-.zoom-icon{position:absolute;top:9px;right:9px;background:rgba(255,0,128,.8);padding:5px 11px;border-radius:7px;cursor:pointer;z-index:10;font-size:12px;transition:all .28s}
-.zoom-icon:hover{background:#ff0080;transform:scale(1.1)}
-.live-timer-badge{position:absolute;bottom:9px;left:9px;background:rgba(0,0,0,.75);border:1px solid #ff8c00;color:#ff8c00;font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px;z-index:20;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.video-thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:.3s}
+.play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.3);transition:.2s}
+.play-overlay:hover{background:rgba(0,0,0,.1)}
+.play-circle{width:52px;height:52px;border-radius:50%;
+  background:rgba(255,45,120,.88);display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 4px 20px rgba(255,45,120,.5);transition:.2s}
+.play-overlay:hover .play-circle{transform:scale(1.12)}
+.tag-new{position:absolute;top:9px;left:9px;background:var(--green);color:#000;
+  font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;z-index:10;
+  letter-spacing:.5px;animation:pulse 2s infinite}
+.badge-pub{position:absolute;top:9px;right:9px;font-size:10px;font-weight:700;
+  padding:3px 10px;border-radius:20px;z-index:10;cursor:pointer;transition:.2s;
+  backdrop-filter:blur(6px)}
+.badge-pub.public{background:rgba(0,229,255,.18);border:1px solid rgba(0,229,255,.4);color:var(--cyan)}
+.badge-pub.private{background:rgba(168,85,247,.18);border:1px solid rgba(168,85,247,.4);color:var(--purple)}
+.badge-pub:hover{transform:scale(1.08)}
 .video-info{padding:13px}
-.video-added-by{font-size:11px;color:#40e0d0;font-weight:700;margin-bottom:3px}
-.video-url{font-size:11px;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:9px}
-.video-bottom{display:flex;justify-content:space-between;align-items:center;gap:7px;flex-wrap:wrap}
-.video-views{font-size:11px;color:rgba(255,255,255,.55)}
-.btn-row{display:flex;gap:7px}
-.btn-sm{padding:5px 12px;border:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;transition:all .22s}
-.btn-open{background:linear-gradient(45deg,#40e0d0,#00bfff);color:#fff}
-.btn-open:hover{transform:scale(1.06)}
-.btn-del{background:linear-gradient(45deg,#ff0000,#cc0000);color:#fff}
-.btn-del:hover{transform:scale(1.06)}
-.btn-watch{background:linear-gradient(45deg,#ff8c00,#ff0080);color:#fff}
-.btn-watch:hover{transform:scale(1.06)}
-.lib-badge{display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:2px 7px;font-size:10px;color:rgba(255,255,255,.55);margin-bottom:5px}
+.vinfo-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.video-added-by{font-size:11px;color:var(--cyan);font-weight:700}
+.video-views{font-size:11px;color:var(--muted)}
+.video-url{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;margin-bottom:10px}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap}
+.btn-sm{padding:5px 11px;border:none;border-radius:8px;font-size:11px;font-weight:700;
+  cursor:pointer;transition:.2s;font-family:'DM Sans',sans-serif}
+.btn-watch{background:linear-gradient(135deg,#ff8c00,#ff2d78);color:#fff}
+.btn-open{background:rgba(0,229,255,.15);color:var(--cyan);border:1px solid rgba(0,229,255,.3)}
+.btn-del{background:rgba(255,50,50,.15);color:#ff5555;border:1px solid rgba(255,50,50,.3)}
+.btn-comment{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.btn-sm:hover{transform:scale(1.06)}
 
-/* ── ANALYTICS USER SECTIONS ── */
-.analytics-user-section{margin-bottom:36px}
-.analytics-user-header{display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:16px 20px;border-radius:14px;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);cursor:pointer;transition:all .28s;user-select:none}
-.analytics-user-header:hover,.analytics-user-header.selected{border-color:#ff8c00;background:rgba(255,140,0,.07);box-shadow:0 6px 22px rgba(255,140,0,.18)}
-.analytics-user-header.selected{border-color:#ff8c00}
-.user-avatar{width:46px;height:46px;border-radius:50%;background:linear-gradient(45deg,#ff0080,#ff8c00);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;flex-shrink:0}
-.user-header-info{flex:1}
-.user-header-name{font-size:1.05em;font-weight:700;color:#ff8c00;margin-bottom:2px}
-.user-header-email{font-size:11px;color:rgba(255,255,255,.4)}
-.user-header-stats{display:flex;gap:18px;flex-wrap:wrap}
-.user-header-stat{text-align:center}
-.user-header-stat .val{font-size:1.1em;font-weight:800;color:#40e0d0}
-.user-header-stat .lbl{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
-.user-section-badge{background:linear-gradient(45deg,#ff0080,#ff8c00);color:#fff;font-size:10px;font-weight:800;padding:4px 11px;border-radius:20px;letter-spacing:.3px;white-space:nowrap}
-.progress-bar{height:4px;background:rgba(255,255,255,.08);border-radius:8px;overflow:hidden;margin-top:11px}
-.progress-fill{height:100%;background:linear-gradient(45deg,#ff0080,#ff8c00);border-radius:8px;transition:width .55s}
+/* ── COMMENTS PANEL ── */
+.comments-panel{display:none;border-top:1px solid var(--border);padding:13px;
+  background:rgba(0,0,0,.25)}
+.comments-panel.open{display:block}
+.comments-list{max-height:200px;overflow-y:auto;margin-bottom:10px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent}
+.comment-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.comment-item:last-child{border-bottom:none}
+.comment-avatar{width:28px;height:28px;border-radius:50%;
+  background:var(--grad);display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;flex-shrink:0}
+.comment-body{flex:1;min-width:0}
+.comment-name{font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:2px}
+.comment-text{font-size:12px;color:var(--text);line-height:1.5;word-break:break-word}
+.comment-time{font-size:10px;color:var(--muted);margin-top:2px}
+.comment-del{font-size:10px;color:#ff5555;cursor:pointer;opacity:.6;flex-shrink:0;padding:2px}
+.comment-del:hover{opacity:1}
+.comment-input-row{display:flex;gap:7px}
+.comment-input-row input{flex:1;padding:8px 12px;background:rgba(255,255,255,.06);
+  border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:12px;
+  font-family:'DM Sans',sans-serif}
+.comment-input-row input::placeholder{color:var(--muted)}
+.comment-input-row input:focus{outline:none;border-color:var(--purple)}
+.comment-send{padding:8px 14px;background:var(--grad2);border:none;border-radius:9px;
+  color:#000;font-weight:700;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  transition:.2s;flex-shrink:0}
+.comment-send:hover{transform:scale(1.05)}
+.no-comments{text-align:center;padding:16px 0;color:var(--muted);font-size:12px}
+
+/* ── ANALYTICS ── */
+.analytics-user-card{display:flex;align-items:center;gap:14px;padding:16px 20px;
+  border-radius:14px;background:var(--surface);border:1px solid var(--border);
+  cursor:pointer;transition:.25s;user-select:none;margin-bottom:12px}
+.analytics-user-card:hover,.analytics-user-card.selected{
+  border-color:rgba(255,140,0,.5);background:rgba(255,140,0,.05);
+  box-shadow:0 6px 24px rgba(255,140,0,.12)}
+.u-avatar{width:44px;height:44px;border-radius:50%;
+  background:var(--grad);display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:800;flex-shrink:0;font-family:'Syne',sans-serif}
+.u-info{flex:1;min-width:0}
+.u-name{font-size:14px;font-weight:700;color:var(--orange);margin-bottom:2px}
+.u-email{font-size:11px;color:var(--muted)}
+.u-bar{height:3px;background:rgba(255,255,255,.07);border-radius:8px;overflow:hidden;margin-top:8px}
+.u-bar-fill{height:100%;border-radius:8px;background:var(--grad);transition:width .5s}
+.u-stats{display:flex;gap:20px;flex-wrap:wrap}
+.u-stat{text-align:right}
+.u-stat .v{font-size:1.1em;font-weight:800;color:var(--cyan)}
+.u-stat .l{font-size:10px;color:var(--muted);margin-top:1px}
+.u-badge{background:var(--grad);color:#fff;font-size:10px;font-weight:700;
+  padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 
 /* ── CHARTS ── */
-.charts-section{margin-bottom:32px}
-.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.charts-area{margin-top:24px;display:none}
+.chart-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;
+  padding:13px 18px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.filter-label{font-size:12px;font-weight:700;color:var(--orange);
+  padding:4px 12px;background:rgba(255,140,0,.1);border:1px solid rgba(255,140,0,.25);
+  border-radius:20px}
+.ctrl-sep{flex:1}
+.ctrl-btn{padding:6px 13px;border-radius:9px;border:1.5px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;
+  font-family:'DM Sans',sans-serif;transition:.2s}
+.ctrl-btn:hover{color:var(--text);border-color:rgba(255,255,255,.25)}
+.ctrl-btn.active{background:var(--grad);border-color:transparent;color:#fff}
+.ctrl-clear{padding:6px 13px;border-radius:9px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;font-size:12px;
+  font-family:'DM Sans',sans-serif;transition:.2s}
+.ctrl-clear:hover{color:var(--text)}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 @media(max-width:900px){.charts-row{grid-template-columns:1fr}}
-.chart-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.1);border-radius:14px;padding:20px}
-.chart-card h3{font-size:14px;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.chart-card h3 span{font-size:11px;color:rgba(255,255,255,.4);font-weight:400}
-.chart-wrap{position:relative;height:260px}
-.chart-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;padding:14px 18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px}
-.chart-controls label{font-size:12px;color:rgba(255,255,255,.55)}
-.chart-controls select{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;padding:6px 12px;font-size:12px;cursor:pointer}
-.chart-controls select option{background:#302b63}
-.chart-controls button{padding:6px 14px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .22s}
-.ctrl-btn-active{background:linear-gradient(45deg,#ff0080,#ff8c00);color:#fff}
-.ctrl-btn{background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)!important}
-.ctrl-btn:hover{background:rgba(255,255,255,.18);color:#fff}
-.active-filter-label{font-size:12px;font-weight:700;color:#ff8c00;padding:4px 12px;background:rgba(255,140,0,.12);border:1px solid rgba(255,140,0,.3);border-radius:20px}
-
-/* ── LEGEND ── */
-.legend-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.7)}
-.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px}
+.chart-card h3{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px;
+  display:flex;justify-content:space-between;align-items:center}
+.chart-card h3 em{font-style:normal;font-size:11px;color:rgba(255,255,255,.25)}
+.chart-wrap{position:relative;height:240px}
 
 /* ── SESSIONS FEED ── */
-.sessions-section{margin-top:28px}
-.sessions-section h3{font-size:1.1em;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:16px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)}
-.session-item{display:flex;align-items:center;gap:13px;padding:11px 14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);margin-bottom:8px;transition:all .22s}
-.session-item:hover{background:rgba(255,255,255,.07)}
-.session-thumb{width:64px;height:38px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#111}
-.session-info{flex:1;min-width:0}
-.session-user{font-size:12px;font-weight:700;color:#ff8c00}
-.session-url{font-size:11px;color:rgba(255,255,255,.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.session-time-info{text-align:right;flex-shrink:0}
-.time-badge{background:rgba(255,140,0,.15);border:1px solid rgba(255,140,0,.3);color:#ff8c00;padding:3px 9px;border-radius:9px;font-weight:700;font-size:11px;white-space:nowrap;display:inline-block;margin-bottom:3px}
-.session-when{font-size:10px;color:rgba(255,255,255,.35)}
+.section-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;
+  padding-bottom:9px;border-bottom:1px solid var(--border);display:flex;
+  align-items:center;gap:8px}
+.session-item{display:flex;align-items:center;gap:12px;padding:10px 14px;
+  border-radius:10px;background:var(--surface);border:1px solid var(--border);
+  margin-bottom:8px;transition:.2s}
+.session-item:hover{background:rgba(255,255,255,.06)}
+.s-thumb{width:60px;height:34px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#111}
+.s-info{flex:1;min-width:0}
+.s-user{font-size:12px;font-weight:700;color:var(--orange)}
+.s-url{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-right{text-align:right;flex-shrink:0}
+.time-badge{background:rgba(255,140,0,.12);border:1px solid rgba(255,140,0,.28);
+  color:var(--orange);padding:3px 9px;border-radius:9px;font-weight:700;font-size:11px;
+  display:inline-block;margin-bottom:3px}
+.s-when{font-size:10px;color:var(--muted)}
 
-/* ── TABLE ── */
-.history-section{margin-top:28px}
-.history-section h3{font-size:1.1em;font-weight:700;color:rgba(255,255,255,.85);margin-bottom:16px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1)}
+/* ── LOGIN SESSIONS TABLE ── */
+.ls-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:16px}
+.ls-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px;text-align:center}
+.ls-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.ls-count{font-size:2em;font-weight:800;color:var(--cyan);font-family:'Syne',sans-serif;
+  margin:6px 0}
+.ls-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.ls-last{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* ── TOP VIDEOS ── */
+.top-video-item{display:flex;align-items:center;gap:12px;padding:9px 13px;
+  border-radius:10px;background:var(--surface);border:1px solid var(--border);margin-bottom:7px}
+.tv-rank{font-size:1.2em;font-weight:800;color:var(--muted);width:28px;
+  text-align:center;flex-shrink:0;font-family:'Syne',sans-serif}
+.tv-thumb{width:60px;height:34px;border-radius:6px;object-fit:cover;background:#111;flex-shrink:0}
+.tv-info{flex:1;min-width:0}
+.tv-url{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tv-user{font-size:10px;color:var(--muted)}
+.tv-plays{font-size:11px;font-weight:700;color:var(--green);flex-shrink:0;
+  background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.2);
+  padding:3px 9px;border-radius:9px}
+
+/* ── HISTORY TABLE ── */
 .history-table{width:100%;border-collapse:collapse}
-.history-table th{text-align:left;padding:10px 14px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.history-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;vertical-align:middle}
-.history-table tr:hover td{background:rgba(255,255,255,.04)}
-.thumb-sm{width:60px;height:34px;border-radius:5px;object-fit:cover;background:#111}
+.history-table th{text-align:left;padding:10px 14px;background:rgba(255,255,255,.04);
+  color:var(--muted);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.history-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);
+  font-size:12px;vertical-align:middle}
+.history-table tr:hover td{background:rgba(255,255,255,.03)}
+.thumb-sm{width:58px;height:32px;border-radius:5px;object-fit:cover;background:#111}
 
 /* ── MODALS ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:3000;align-items:center;justify-content:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);
+  z-index:3000;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.active{display:flex}
-.modal{background:linear-gradient(135deg,#302b63,#24243e);border:2px solid #ff0080;border-radius:18px;padding:36px;max-width:460px;width:90%;text-align:center;animation:zoomIn .28s;box-shadow:0 20px 55px rgba(255,0,128,.38)}
-.modal h2{color:#ff0080;margin-bottom:12px;font-size:1.4em}
-.modal p{color:rgba(255,255,255,.65);margin-bottom:20px;font-size:13px}
-.modal input{width:100%;padding:12px 15px;margin-bottom:8px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.18);border-radius:10px;color:#fff;font-size:14px}
-.modal input:focus{outline:none;border-color:#ff0080}
-.modal-err{color:#ff4444;font-size:12px;margin-bottom:12px;display:none}
+.modal{background:linear-gradient(135deg,rgba(15,18,30,.98),rgba(20,22,35,.98));
+  border:1px solid var(--border);border-radius:20px;padding:32px;
+  width:100%;text-align:center;animation:zoomIn .25s;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.modal.sm{max-width:420px}
+.modal.md{max-width:520px}
+.modal h2{font-size:1.4em;margin-bottom:10px}
+.modal p{color:var(--muted);margin-bottom:18px;font-size:13px;line-height:1.6}
+.modal input{width:100%;padding:11px 14px;margin-bottom:9px;
+  background:rgba(255,255,255,.07);border:1.5px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif}
+.modal input:focus{outline:none;border-color:var(--pink)}
+.modal-err{color:#ff5555;font-size:12px;margin-bottom:12px;display:none;
+  padding:8px;background:rgba(255,50,50,.1);border-radius:8px}
 .modal-err.show{display:block}
-.modal-btns{display:flex;gap:10px;justify-content:center}
-.modal-btns button{padding:10px 26px;border:none;border-radius:9px;font-weight:700;cursor:pointer;transition:all .22s;font-size:13px}
-.btn-confirm-del{background:linear-gradient(45deg,#ff0000,#cc0000);color:#fff}
-.btn-cancel{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.22)!important}
-.btn-cancel:hover{background:rgba(255,255,255,.18)}
-.modal-login{border-color:#40e0d0;box-shadow:0 20px 55px rgba(64,224,208,.3)}
-.modal-login h2{color:#40e0d0}
-.modal-login input:focus{border-color:#40e0d0}
-.btn-confirm-login{background:linear-gradient(45deg,#40e0d0,#00bfff);color:#000}
+.modal-btns{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
+.btn-confirm{padding:10px 24px;border:none;border-radius:10px;font-weight:700;
+  cursor:pointer;transition:.2s;font-size:13px;font-family:'DM Sans',sans-serif}
+.btn-confirm.pink{background:var(--grad);color:#fff}
+.btn-confirm.cyan{background:var(--grad2);color:#000}
+.btn-confirm.red{background:linear-gradient(135deg,#ff3333,#cc0000);color:#fff}
+.btn-cancel{padding:10px 24px;border:1px solid var(--border);border-radius:10px;
+  background:rgba(255,255,255,.06);color:var(--muted);cursor:pointer;font-size:13px;
+  font-family:'DM Sans',sans-serif;transition:.2s}
+.btn-cancel:hover{background:rgba(255,255,255,.1);color:var(--text)}
 
 /* ── WATCH MODAL ── */
-.modal-watch{border-color:#ff8c00;box-shadow:0 20px 55px rgba(255,140,0,.28);max-width:560px}
-.modal-watch h2{color:#ff8c00}
-.watch-video-frame{width:100%;aspect-ratio:16/9;border-radius:9px;margin-bottom:14px;border:none}
-.watch-timer{font-size:2.8em;font-weight:800;color:#ff8c00;margin:14px 0;font-variant-numeric:tabular-nums;letter-spacing:2px}
-.btn-stop{background:linear-gradient(45deg,#ff8c00,#ff0080);color:#fff;padding:11px 30px;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;transition:all .28s}
-.btn-stop:hover{transform:scale(1.05)}
+.modal.watch{max-width:580px;border-color:rgba(255,140,0,.4)}
+.modal.watch h2{color:var(--orange)}
+.watch-frame{width:100%;aspect-ratio:16/9;border-radius:10px;margin-bottom:14px;border:none}
+.watch-timer{font-size:3em;font-weight:800;color:var(--orange);margin:12px 0;
+  font-family:'Syne',sans-serif;letter-spacing:2px;font-variant-numeric:tabular-nums}
+.btn-stop{background:var(--grad);color:#fff;padding:11px 30px;border:none;
+  border-radius:11px;font-weight:700;font-size:14px;cursor:pointer;transition:.25s;
+  font-family:'DM Sans',sans-serif}
+.btn-stop:hover{transform:scale(1.04)}
 
-/* ── MISC ── */
-.toast{position:fixed;top:20px;right:20px;padding:13px 22px;border-radius:11px;font-weight:700;z-index:9999;animation:slideInRight .38s;box-shadow:0 6px 18px rgba(0,0,0,.4);font-size:13px;max-width:300px}
-.toast.ok{background:linear-gradient(45deg,#00ff88,#00cc66);color:#000}
-.toast.err{background:linear-gradient(45deg,#ff3333,#cc0000);color:#fff}
-.loader{display:none;width:36px;height:36px;border:4px solid rgba(255,255,255,.1);border-top:4px solid #ff0080;border-radius:50%;animation:spin 1s linear infinite;margin:28px auto}
+/* ── TOASTS / LOADER / MISC ── */
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:11px;
+  font-weight:600;z-index:9999;animation:slideRight .35s;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:13px;max-width:300px}
+.toast.ok{background:linear-gradient(135deg,#00ff88,#00cc66);color:#000}
+.toast.err{background:linear-gradient(135deg,#ff3333,#cc0000);color:#fff}
+.loader{display:none;width:32px;height:32px;border:3px solid rgba(255,255,255,.08);
+  border-top:3px solid var(--pink);border-radius:50%;animation:spin 1s linear infinite;margin:32px auto}
 .loader.active{display:block}
-.empty{text-align:center;padding:50px 20px;color:rgba(255,255,255,.3);font-size:14px}
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px}
+.login-prompt{text-align:center;padding:20px}
+.login-prompt p{color:var(--muted);margin-bottom:14px;font-size:13px}
+.divider{height:1px;background:var(--border);margin:24px 0}
 
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes zoomIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
-@keyframes slideInRight{from{transform:translateX(120%)}to{transform:translateX(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes zoomIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+@keyframes slideRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{box-shadow:0 3px 8px rgba(0,255,136,.35)}50%{box-shadow:0 3px 16px rgba(0,255,136,.75)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes pulse{0%,100%{box-shadow:0 2px 8px rgba(0,255,136,.3)}50%{box-shadow:0 2px 16px rgba(0,255,136,.65)}}
 
 @media(max-width:768px){
-  .navbar{padding:11px 14px}
+  .navbar{padding:11px 16px}
   .page{padding:14px}
   .video-grid{grid-template-columns:1fr}
-  .user-header-stats{gap:10px}
+  .u-stats{gap:10px}
+  .charts-row{grid-template-columns:1fr}
   .history-table th:nth-child(3),.history-table td:nth-child(3){display:none}
 }
 </style>
@@ -193,39 +328,45 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 
 <!-- NAV -->
 <nav class="navbar">
-  <div class="nav-brand">🎮 VIDEO MANAGER</div>
+  <div class="brand">⬡ VIDLIB</div>
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('library')">📚 My Library</button>
-    <button class="nav-tab" onclick="showPage('allvideos')">🌐 All Videos</button>
+    <button class="nav-tab" onclick="showPage('allvideos')">🌐 Public Feed</button>
     <button class="nav-tab" onclick="showPage('history')">📊 Analytics</button>
   </div>
-  <div class="nav-user" id="navUser">
-    <button class="btn-login" onclick="openLoginModal()">Login / Register</button>
+  <div class="nav-right" id="navRight">
+    <button class="btn-pill grad" onclick="openLoginModal()">Login / Register</button>
   </div>
 </nav>
 
-<!-- ══ PAGE: LIBRARY ══ -->
+<!-- ══ LIBRARY ══ -->
 <div class="page active" id="page-library">
-  <div class="section-head"><h2>📚 My Library</h2><p>Your personal video collection</p></div>
-  <div class="glass" style="margin-bottom:22px">
-    <div id="loginPrompt" style="text-align:center;padding:18px">
-      <p style="color:rgba(255,255,255,.55);margin-bottom:14px">Login or create your library to add videos</p>
-      <button class="btn" onclick="openLoginModal()">Create / Enter Library</button>
+  <div class="ph"><h2>📚 My Library</h2><p>Your private collection — toggle visibility per video</p></div>
+
+  <div class="card add-form-wrap">
+    <div id="loginPrompt" class="login-prompt">
+      <p>Login or register to create your personal library and start saving videos</p>
+      <button class="btn-pill grad" onclick="openLoginModal()">Create / Enter Library</button>
     </div>
     <div id="addForm" style="display:none">
-      <div class="input-row">
-        <input type="url" id="videoUrl" placeholder="Paste YouTube URL here..." autocomplete="off">
-        <button class="btn" onclick="addVideo()">Add Video</button>
+      <div class="url-preview-row">
+        <div class="url-input-col">
+          <input type="url" id="videoUrl" placeholder="Paste YouTube URL here…" autocomplete="off"
+            oninput="onUrlInput(this.value)">
+        </div>
+        <img id="urlPreviewThumb" class="thumb-preview" alt="preview">
+        <button class="btn-add" onclick="addVideo()">+ Add Video</button>
       </div>
     </div>
   </div>
+
   <div class="loader" id="libLoader"></div>
   <div class="video-grid" id="libGrid"></div>
 </div>
 
-<!-- ══ PAGE: ALL VIDEOS ══ -->
+<!-- ══ PUBLIC FEED ══ -->
 <div class="page" id="page-allvideos">
-  <div class="section-head"><h2>🌐 All Videos</h2><p>Every video across all libraries</p></div>
+  <div class="ph"><h2>🌐 Public Feed</h2><p>Videos shared publicly by all users</p></div>
   <div class="lib-tabs" id="libFilterTabs">
     <button class="lib-tab active" onclick="filterByLib(null,this)">All</button>
   </div>
@@ -233,173 +374,196 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
   <div class="video-grid" id="allGrid"></div>
 </div>
 
-<!-- ══ PAGE: ANALYTICS ══ -->
+<!-- ══ ANALYTICS ══ -->
 <div class="page" id="page-history">
-  <div class="section-head"><h2>📊 Activity Analytics</h2><p>Per-user watch stats · Click a user card to view their graphs</p></div>
-  <div class="loader" id="histLoader"></div>
+  <div class="ph" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2>📊 Analytics</h2>
+      <p>Watch time, login sessions, most-watched videos · Click a user to filter</p>
+    </div>
+    <button class="btn-pill danger" onclick="openPurgeModal()">🗑️ Delete All Data</button>
+  </div>
 
-  <!-- User sections -->
+  <div class="loader" id="histLoader"></div>
   <div id="userSections"></div>
 
-  <!-- Charts area shown below selected user -->
-  <div id="chartsArea" style="display:none">
+  <div class="charts-area" id="chartsArea">
     <div class="chart-controls">
-      <span id="activeFilterLabel" class="active-filter-label">All Users</span>
-      <div style="flex:1"></div>
-      <label>Range:</label>
-      <button class="ctrl-btn ctrl-btn-active" id="btn7" onclick="setDays(7,this)">7 days</button>
-      <button class="ctrl-btn" id="btn30" onclick="setDays(30,this)">30 days</button>
-      <button class="ctrl-btn" id="btn90" onclick="setDays(90,this)">90 days</button>
-      <button class="ctrl-btn" style="margin-left:8px;background:rgba(255,255,255,.06)" onclick="clearUserFilter()">✕ Clear Filter</button>
+      <span class="filter-label" id="activeFilterLabel">All Users</span>
+      <div class="ctrl-sep"></div>
+      <button class="ctrl-btn active" id="btn7" onclick="setDays(7,this)">7d</button>
+      <button class="ctrl-btn" id="btn30" onclick="setDays(30,this)">30d</button>
+      <button class="ctrl-btn" id="btn90" onclick="setDays(90,this)">90d</button>
+      <button class="ctrl-clear" onclick="clearUserFilter()">✕ Clear</button>
     </div>
 
     <div class="charts-row">
       <div class="chart-card">
-        <h3>📅 Daily Watch Time (hours) <span id="barSubtitle"></span></h3>
+        <h3>📅 Daily Watch Time <em id="barSub"></em></h3>
         <div class="chart-wrap"><canvas id="chartBar"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>🕐 Activity by Hour of Day <span id="lineSubtitle"></span></h3>
+        <h3>🕐 Activity by Hour <em id="lineSub"></em></h3>
         <div class="chart-wrap"><canvas id="chartLine"></canvas></div>
       </div>
     </div>
 
-    <!-- Sessions feed -->
-    <div class="sessions-section">
-      <h3>⏱ Recent Watch Sessions</h3>
-      <div id="sessionsFeed"></div>
-    </div>
+    <!-- Login Sessions -->
+    <div class="divider"></div>
+    <div class="section-title">🔐 Login Sessions</div>
+    <div class="ls-grid" id="loginStatsGrid"></div>
 
-    <!-- Video detail table -->
-    <div class="history-section">
-      <h3>🎬 Video Watch Log</h3>
-      <div style="overflow-x:auto">
-        <table class="history-table">
-          <thead><tr>
-            <th>Thumb</th><th>User</th><th>Video</th>
-            <th>Time</th><th>Sessions</th><th>Last Seen</th>
-          </tr></thead>
-          <tbody id="histTable"></tbody>
-        </table>
-      </div>
+    <!-- Top Videos -->
+    <div class="divider"></div>
+    <div class="section-title">🔥 Most Played Videos</div>
+    <div id="topVideosList"></div>
+
+    <!-- Recent Sessions -->
+    <div class="divider"></div>
+    <div class="section-title">⏱ Recent Watch Sessions</div>
+    <div id="sessionsFeed"></div>
+
+    <!-- Full log table -->
+    <div class="divider"></div>
+    <div class="section-title">🎬 Full Watch Log</div>
+    <div style="overflow-x:auto">
+      <table class="history-table">
+        <thead><tr>
+          <th>Thumb</th><th>User</th><th>Video</th>
+          <th>Time</th><th>Sessions</th><th>Last Seen</th>
+        </tr></thead>
+        <tbody id="histTable"></tbody>
+      </table>
     </div>
   </div>
 </div>
 
-<!-- MODAL: LOGIN -->
+<!-- ── MODAL: LOGIN ── -->
 <div class="modal-overlay" id="loginModal">
-  <div class="modal modal-login">
-    <h2>👤 Your Library</h2>
-    <p>Enter your name and email to create or access your personal library</p>
+  <div class="modal sm">
+    <h2 style="color:var(--cyan)">👤 Your Library</h2>
+    <p>Enter your name and email to create or access your library. A new account is created automatically if you're new.</p>
     <input type="text" id="loginName" placeholder="Your name" autocomplete="off">
-    <input type="email" id="loginEmail" placeholder="Your email" autocomplete="off" style="margin-top:9px">
+    <input type="email" id="loginEmail" placeholder="Your email" autocomplete="off">
     <div class="modal-err" id="loginErr"></div>
     <div class="modal-btns">
-      <button class="btn-confirm-login" onclick="confirmLogin()">Enter Library</button>
+      <button class="btn-confirm cyan" onclick="confirmLogin()">Enter Library</button>
       <button class="btn-cancel" onclick="closeModal('loginModal')">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: DELETE -->
+<!-- ── MODAL: DELETE VIDEO ── -->
 <div class="modal-overlay" id="deleteModal">
-  <div class="modal">
-    <h2>🗑️ Delete Video</h2>
-    <p>Enter admin email to confirm</p>
-    <input type="email" id="deleteEmail" placeholder="Admin email" autocomplete="off">
+  <div class="modal sm">
+    <h2 style="color:var(--pink)">🗑️ Delete Video</h2>
+    <p>Enter admin email to confirm deletion</p>
+    <input type="email" id="deleteEmail" placeholder="Admin email">
     <div class="modal-err" id="deleteErr"></div>
     <div class="modal-btns">
-      <button class="btn-confirm-del" onclick="confirmDelete()">Delete</button>
+      <button class="btn-confirm red" onclick="confirmDelete()">Delete</button>
       <button class="btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
     </div>
   </div>
 </div>
 
+<!-- ── MODAL: PURGE ALL ── -->
+<div class="modal-overlay" id="purgeModal">
+  <div class="modal md">
+    <h2 style="color:#ff3333">⚠️ Purge All Data</h2>
+    <p>This will <strong style="color:#ff5555">permanently delete everything</strong> — all users, videos, watch history, comments, and sessions. This cannot be undone.</p>
+    <input type="email" id="purgeEmail" placeholder="Admin email">
+    <input type="text" id="purgeConfirmText" placeholder='Type DELETE_ALL to confirm' autocomplete="off">
+    <div class="modal-err" id="purgeErr"></div>
+    <div class="modal-btns">
+      <button class="btn-confirm red" onclick="confirmPurge()">☠️ Purge Everything</button>
+      <button class="btn-cancel" onclick="closeModal('purgeModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: WATCH ── -->
+<div class="modal-overlay" id="watchModal">
+  <div class="modal watch">
+    <h2>▶ Now Watching</h2>
+    <iframe id="watchFrame" class="watch-frame" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+    <div class="watch-timer" id="watchTimer">00:00:00</div>
+    <button class="btn-stop" onclick="stopWatching()">⏹ Stop & Save</button>
+  </div>
+</div>
 
 <script>
 const API = window.location.origin;
 
-// ── STATE ──────────────────────────────────────────────
+// ── STATE ──
 let currentUser = null;
 let currentDeleteId = null;
-let allLibUsers = [];
-let watchVideoId = null;
-let watchSeconds = 0;
-let watchSessionStart = null;
-let watchInterval = null;
+let watchVideoId = null, watchSeconds = 0, watchSessionStart = null, watchInterval = null;
 let chartDays = 7;
-let chartBarInstance = null;
-let chartLineInstance = null;
-let analyticsData = null;
+let chartBarI = null, chartLineI = null;
 let activeCardIframe = null;
-let activeVideoId = null;            // id of video currently playing inline
-let selectedAnalyticsUserId = null;  // which user card is selected in analytics
-let allUserStats = [];               // cached user stats list
+let selectedUserId = null;
+let allUserStats = [];
 
-// Palette for per-user coloring
 const PALETTE = [
-  ['rgba(255,0,128,.85)','rgba(255,0,128,.22)'],
-  ['rgba(64,224,208,.85)','rgba(64,224,208,.22)'],
-  ['rgba(255,140,0,.85)','rgba(255,140,0,.22)'],
-  ['rgba(100,200,255,.85)','rgba(100,200,255,.22)'],
-  ['rgba(180,120,255,.85)','rgba(180,120,255,.22)'],
-  ['rgba(0,255,136,.85)','rgba(0,255,136,.22)'],
+  ['rgba(255,45,120,.9)','rgba(255,45,120,.18)'],
+  ['rgba(0,229,255,.9)','rgba(0,229,255,.18)'],
+  ['rgba(255,140,0,.9)','rgba(255,140,0,.18)'],
+  ['rgba(168,85,247,.9)','rgba(168,85,247,.18)'],
+  ['rgba(0,255,136,.9)','rgba(0,255,136,.18)'],
+  ['rgba(255,200,0,.9)','rgba(255,200,0,.18)'],
 ];
 
-// ── INIT ───────────────────────────────────────────────
+// ── INIT ──
 (function(){
-  try {
-    const s = localStorage.getItem('vmUser');
-    if(s){ currentUser = JSON.parse(s); updateNavUser(); }
-  } catch(e){}
+  try{ const s = localStorage.getItem('vmUser'); if(s){ currentUser=JSON.parse(s); updateNavUser(); } }catch(e){}
   showPage('library');
 })();
 
-// ── PAGES ──────────────────────────────────────────────
+// ── PAGES ──
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
-  const idx={library:0,allvideos:1,history:2}[page];
-  document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+  [{library:0},{allvideos:1},{history:2}].forEach(o=>{ if(o[page]!==undefined) document.querySelectorAll('.nav-tab')[o[page]].classList.add('active'); });
   if(page==='library') loadLibrary();
   if(page==='allvideos') loadAllVideos();
   if(page==='history') loadHistory();
 }
 
-// ── USER ───────────────────────────────────────────────
+// ── USER ──
 function updateNavUser(){
-  const el = document.getElementById('navUser');
+  const el = document.getElementById('navRight');
   if(currentUser){
-    el.innerHTML = `<div class="user-chip"><span class="dot"></span>${esc(currentUser.name)}</div>
-      <button class="btn-login" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2)" onclick="logout()">Logout</button>`;
-    document.getElementById('loginPrompt').style.display = 'none';
-    document.getElementById('addForm').style.display = 'block';
+    el.innerHTML = `
+      <div class="user-chip"><span class="dot"></span>${esc(currentUser.name)}</div>
+      <button class="btn-pill ghost" onclick="logout()">Logout</button>`;
+    document.getElementById('loginPrompt').style.display='none';
+    document.getElementById('addForm').style.display='block';
   } else {
-    el.innerHTML = `<button class="btn-login" onclick="openLoginModal()">Login / Register</button>`;
-    document.getElementById('loginPrompt').style.display = 'block';
-    document.getElementById('addForm').style.display = 'none';
+    el.innerHTML = `<button class="btn-pill grad" onclick="openLoginModal()">Login / Register</button>`;
+    document.getElementById('loginPrompt').style.display='block';
+    document.getElementById('addForm').style.display='none';
   }
 }
 
 function openLoginModal(){
-  document.getElementById('loginName').value = '';
-  document.getElementById('loginEmail').value = '';
-  document.getElementById('loginErr').textContent = '';
-  document.getElementById('loginErr').classList.remove('show');
+  ['loginName','loginEmail'].forEach(id=>document.getElementById(id).value='');
+  setErr('loginErr','');
   openModal('loginModal');
-  setTimeout(()=>document.getElementById('loginName').focus(), 80);
+  setTimeout(()=>document.getElementById('loginName').focus(),80);
 }
+
 function openModal(id){ document.getElementById(id).classList.add('active'); }
 function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+function setErr(id, msg){ const e=document.getElementById(id); e.textContent=msg; e.classList.toggle('show',!!msg); }
 
 async function confirmLogin(){
   const name = document.getElementById('loginName').value.trim();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
-  const err = document.getElementById('loginErr');
-  err.textContent = ''; err.classList.remove('show');
-  if(!name){ err.textContent = 'Name required'; err.classList.add('show'); return; }
-  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err.textContent = 'Valid email required'; err.classList.add('show'); return; }
+  setErr('loginErr','');
+  if(!name){ setErr('loginErr','Name required'); return; }
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ setErr('loginErr','Valid email required'); return; }
   try{
     const r = await fetch(`${API}/api/users/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
     const d = await r.json();
@@ -409,9 +573,12 @@ async function confirmLogin(){
       closeModal('loginModal');
       updateNavUser();
       toast(d.is_new ? `Welcome ${d.user.name}! Library created 🎉` : `Welcome back, ${d.user.name}!`);
+      // Record login session
+      fetch(`${API}/api/sessions/login`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({user_id:currentUser.id})}).catch(()=>{});
       loadLibrary();
-    } else { err.textContent = d.error||'Error'; err.classList.add('show'); }
-  } catch(e){ err.textContent = 'Server error'; err.classList.add('show'); }
+    } else { setErr('loginErr', d.error||'Error'); }
+  } catch(e){ setErr('loginErr','Server error'); }
 }
 
 function logout(){
@@ -422,20 +589,36 @@ function logout(){
   toast('Logged out');
 }
 
-// ── LIBRARY ───────────────────────────────────────────
+// ── URL PREVIEW ──
+function ytIdFromUrl(url){
+  try{
+    const u = new URL(url);
+    if(u.hostname.includes('youtube.com')) return u.searchParams.get('v')||'';
+    if(u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+  }catch(e){}
+  return '';
+}
+function onUrlInput(val){
+  const thumb = document.getElementById('urlPreviewThumb');
+  const vid = ytIdFromUrl(val.trim());
+  if(vid){ thumb.src=`https://img.youtube.com/vi/${vid}/mqdefault.jpg`; thumb.classList.add('show'); }
+  else { thumb.src=''; thumb.classList.remove('show'); }
+}
+
+// ── LIBRARY ──
 async function loadLibrary(){
   const grid = document.getElementById('libGrid');
-  if(!currentUser){ grid.innerHTML = '<div class="empty">Login to see your library</div>'; return; }
+  if(!currentUser){ grid.innerHTML='<div class="empty">Login to see your library</div>'; return; }
   const loader = document.getElementById('libLoader');
-  loader.classList.add('active'); grid.innerHTML = '';
+  loader.classList.add('active'); grid.innerHTML='';
   try{
     const r = await fetch(`${API}/api/videos?user_id=${currentUser.id}`);
     const d = await r.json();
     if(d.success){
-      if(!d.videos.length) grid.innerHTML = '<div class="empty">No videos yet — paste a URL above!</div>';
-      else d.videos.forEach(v => grid.appendChild(makeCard(v)));
+      if(!d.videos.length) grid.innerHTML='<div class="empty">No videos yet — paste a URL above!</div>';
+      else d.videos.forEach(v=>grid.appendChild(makeCard(v,true,true)));
     }
-  } catch(e){ toast('Error loading library', true); }
+  }catch(e){ toast('Error loading library',true); }
   finally{ loader.classList.remove('active'); }
 }
 
@@ -443,293 +626,374 @@ async function addVideo(){
   if(!currentUser){ openLoginModal(); return; }
   const inp = document.getElementById('videoUrl');
   const url = inp.value.trim();
-  if(!url){ toast('Please enter a URL', true); return; }
+  if(!url){ toast('Please enter a URL',true); return; }
   try{
     const r = await fetch(`${API}/api/videos/add`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,email:currentUser.email})});
     const d = await r.json();
-    if(d.success){ toast('✅ Video added!'); inp.value = ''; loadLibrary(); }
-    else toast(d.error||'Failed', true);
-  } catch(e){ toast('Error adding video', true); }
+    if(d.success){
+      toast('✅ Video added!');
+      inp.value='';
+      document.getElementById('urlPreviewThumb').src='';
+      document.getElementById('urlPreviewThumb').classList.remove('show');
+      loadLibrary();
+    } else toast(d.error||'Failed',true);
+  }catch(e){ toast('Error adding video',true); }
 }
 
-// ── ALL VIDEOS ─────────────────────────────────────────
+// ── ALL VIDEOS (public only) ──
 async function loadAllVideos(){
   const grid = document.getElementById('allGrid');
   const loader = document.getElementById('allLoader');
-  loader.classList.add('active'); grid.innerHTML = '';
+  loader.classList.add('active'); grid.innerHTML='';
   try{
     const [vr, ur] = await Promise.all([
-      fetch(`${API}/api/videos`).then(r=>r.json()),
+      fetch(`${API}/api/videos?public_only=true`).then(r=>r.json()),
       fetch(`${API}/api/users`).then(r=>r.json())
     ]);
-    allLibUsers = ur.users || [];
-    buildLibTabs(allLibUsers);
+    buildLibTabs(ur.users||[]);
     if(vr.success){
-      if(!vr.videos.length) grid.innerHTML = '<div class="empty">No videos yet</div>';
-      else {
-        vr.videos.forEach(v => {
-          // Show Watch button for logged-in users on All Videos page too
-          grid.appendChild(makeCard(v));
-        });
-      }
+      if(!vr.videos.length) grid.innerHTML='<div class="empty">No public videos yet</div>';
+      else vr.videos.forEach(v=>grid.appendChild(makeCard(v,!!currentUser,false)));
     }
-  } catch(e){ toast('Error loading', true); }
+  }catch(e){ toast('Error loading',true); }
   finally{ loader.classList.remove('active'); }
 }
 
 function buildLibTabs(users){
   const tabs = document.getElementById('libFilterTabs');
-  tabs.innerHTML = `<button class="lib-tab active" onclick="filterByLib(null,this)">All</button>`;
-  users.forEach(u => {
-    const b = document.createElement('button');
-    b.className = 'lib-tab';
-    b.textContent = `${u.name} (${u.video_count})`;
-    b.onclick = () => filterByLib(u.id, b);
+  tabs.innerHTML=`<button class="lib-tab active" onclick="filterByLib(null,this)">All</button>`;
+  users.forEach(u=>{
+    const b=document.createElement('button');
+    b.className='lib-tab';
+    b.textContent=`${u.name} (${u.video_count})`;
+    b.onclick=()=>filterByLib(u.id,b);
     tabs.appendChild(b);
   });
 }
 
-function filterByLib(userId, btn){
+function filterByLib(userId,btn){
   document.querySelectorAll('.lib-tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
   document.querySelectorAll('#allGrid .video-card').forEach(c=>{
-    c.style.display = (!userId || c.dataset.userId === userId) ? '' : 'none';
+    c.style.display=(!userId||c.dataset.userId===userId)?'':'none';
   });
 }
 
-// ── INLINE PLAY + BACKGROUND SESSION TRACKING ─────────
-// Click ▶ → video plays right in the card.
-// If user is logged in, a silent timer runs in the background.
-// Clicking another video auto-saves the previous session first.
-
-function playCardVideo(videoId, embedUrl){
-  // If same video clicked again, do nothing (already playing)
-  if(activeVideoId === videoId) return;
-
-  // Save existing session before switching
-  saveCurrentSession();
-
-  const wrapper = document.getElementById('wrapper-' + videoId);
-  if(!wrapper) return;
-
-  // Stop previous iframe
-  if(activeCardIframe){
-    activeCardIframe.src = '';
-    activeCardIframe.remove();
-    activeCardIframe = null;
-  }
-  // Reset previous card UI
-  if(activeVideoId){
-    const po = document.getElementById('overlay-' + activeVideoId);
-    const pt = document.getElementById('thumb-' + activeVideoId);
-    const tb = document.getElementById('timer-badge-' + activeVideoId);
-    if(po) po.style.display = 'flex';
-    if(pt) pt.style.display = '';
-    if(tb) tb.style.display = 'none';
-  }
-
-  // Inject iframe into new card
-  const overlay = document.getElementById('overlay-' + videoId);
-  const thumb   = document.getElementById('thumb-' + videoId);
-  if(overlay) overlay.style.display = 'none';
-  if(thumb)   thumb.style.display   = 'none';
-
-  const iframe = document.createElement('iframe');
-  iframe.src = embedUrl + '?autoplay=1&rel=0';
-  iframe.setAttribute('frameborder','0');
-  iframe.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
-  iframe.setAttribute('allowfullscreen','');
-  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;z-index:5';
-  wrapper.appendChild(iframe);
-  activeCardIframe = iframe;
-  activeVideoId    = videoId;
-
-  // Start background session timer (only if logged in)
-  if(currentUser){
-    watchVideoId       = videoId;
-    watchSeconds       = 0;
-    watchSessionStart  = new Date().toISOString();
-    clearInterval(watchInterval);
-    const badge   = document.getElementById('timer-badge-' + videoId);
-    const timerTxt = document.getElementById('timer-txt-' + videoId);
-    if(badge) badge.style.display = 'inline-block';
-    watchInterval = setInterval(()=>{
-      watchSeconds++;
-      if(timerTxt){
-        const m = Math.floor(watchSeconds / 60);
-        const s = String(watchSeconds % 60).padStart(2,'0');
-        timerTxt.textContent = `${m}:${s}`;
-      }
-    }, 1000);
-  }
-}
-
-async function saveCurrentSession(){
-  if(!currentUser || !watchVideoId || watchSeconds < 3){ 
-    clearInterval(watchInterval);
-    watchVideoId = null; watchSeconds = 0; watchSessionStart = null;
-    return; 
-  }
-  clearInterval(watchInterval);
-  const vid = watchVideoId, secs = watchSeconds, ss = watchSessionStart;
-  watchVideoId = null; watchSeconds = 0; watchSessionStart = null;
-  try{
-    await fetch(`${API}/api/history/record`,{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ user_id: currentUser.id, video_id: vid, seconds_watched: secs, session_start: ss })
-    });
-    toast(`✅ ${fmtTime(secs)} saved`);
-  } catch(e){ /* silent fail */ }
-}
-
-// Save on page unload / tab close using sendBeacon
-window.addEventListener('beforeunload', ()=>{
-  if(!currentUser || !watchVideoId || watchSeconds < 3) return;
-  clearInterval(watchInterval);
-  const payload = JSON.stringify({ user_id: currentUser.id, video_id: watchVideoId, seconds_watched: watchSeconds, session_start: watchSessionStart });
-  navigator.sendBeacon(`${API}/api/history/record`, new Blob([payload],{type:'application/json'}));
-});
-
-function isNew(iso){ return (Date.now() - new Date(iso).getTime()) < 86400000; }
-
-function makeCard(v){
+// ── CARD ──
+function makeCard(v, showWatch, isOwner){
   const card = document.createElement('div');
-  card.className = 'video-card';
-  card.id = 'card-' + v._id;
-  card.dataset.userId = v.user_id || '';
-  const newTag = isNew(v.created_at) ? `<span class="tag-new">🆕 NEW</span>` : '';
-  const libBadge = v.library_name ? `<div class="lib-badge">📚 ${esc(v.library_name)}</div>` : '';
+  card.className='video-card';
+  card.dataset.userId = v.user_id||'';
+
+  const newTag = isNew(v.created_at)?`<span class="tag-new">NEW</span>`:'';
+  const pubBadge = isOwner
+    ? `<span class="badge-pub ${v.is_public?'public':'private'}" id="pub-${v._id}"
+         onclick="event.stopPropagation();toggleVisibility('${v._id}')"
+         title="Click to toggle">
+         ${v.is_public?'🌐 Public':'🔒 Private'}
+       </span>` : '';
+
+  const watchBtn = (showWatch && currentUser)
+    ? `<button class="btn-sm btn-watch" onclick="startWatching('${v._id}','${esc(v.embed_url)}')">▶ Watch</button>`
+    : '';
+
   card.innerHTML = `
     <div class="video-wrapper" id="wrapper-${v._id}">
       ${newTag}
-      <span class="live-timer-badge" id="timer-badge-${v._id}" style="display:none">⏱ <span id="timer-txt-${v._id}">0:00</span></span>
-      <span class="zoom-icon" onclick="event.stopPropagation();openTab('${esc(v.url)}')">🔍</span>
-      <img class="video-thumb" id="thumb-${v._id}" src="${esc(v.thumbnail||'')}" onerror="this.style.display='none'">
-      <div class="play-overlay" id="overlay-${v._id}" onclick="playCardVideo('${v._id}','${esc(v.embed_url)}')">
-        <div class="play-btn-circle">▶</div>
+      ${pubBadge}
+      <img class="video-thumb" src="${esc(v.thumbnail||'')}" onerror="this.style.display='none'">
+      <div class="play-overlay" onclick="playCardVideo('${v._id}','${esc(v.embed_url)}')">
+        <div class="play-circle">▶</div>
       </div>
     </div>
     <div class="video-info">
-      ${libBadge}
-      <div class="video-added-by">👤 ${esc(v.added_by)}</div>
+      <div class="vinfo-top">
+        <div class="video-added-by">👤 ${esc(v.added_by)}</div>
+        <div class="video-views">👁 ${v.views||0}</div>
+      </div>
       <div class="video-url" title="${esc(v.url)}">${esc(v.url)}</div>
-      <div class="video-bottom">
-        <div class="video-views" id="views-${v._id}">👁 ${v.views||0} views</div>
-        <div class="btn-row">
-          <button class="btn-sm btn-open" onclick="openTab('${esc(v.url)}')">Open</button>
-          <button class="btn-sm btn-del" onclick="openDeleteModal('${v._id}')">Delete</button>
-        </div>
+      <div class="btn-row">
+        ${watchBtn}
+        <button class="btn-sm btn-open" onclick="openTab('${esc(v.url)}')">Open</button>
+        <button class="btn-sm btn-comment" onclick="toggleComments('${v._id}',this)">💬 Comments</button>
+        <button class="btn-sm btn-del" onclick="openDeleteModal('${v._id}')">🗑</button>
+      </div>
+    </div>
+    <div class="comments-panel" id="cp-${v._id}">
+      <div class="comments-list" id="cl-${v._id}"><div class="no-comments">Loading…</div></div>
+      <div class="comment-input-row" ${currentUser?'':'style="display:none"'}>
+        <input type="text" id="ci-${v._id}" placeholder="Write a comment…"
+          onkeypress="if(event.key==='Enter')sendComment('${v._id}')">
+        <button class="comment-send" onclick="sendComment('${v._id}')">Send</button>
       </div>
     </div>`;
   return card;
 }
 
-// ── DELETE ─────────────────────────────────────────────
-function openDeleteModal(id){
-  currentDeleteId = id;
-  document.getElementById('deleteEmail').value = '';
-  document.getElementById('deleteErr').textContent = '';
-  document.getElementById('deleteErr').classList.remove('show');
-  openModal('deleteModal');
-  setTimeout(()=>document.getElementById('deleteEmail').focus(), 80);
-}
-
-async function confirmDelete(){
-  const email = document.getElementById('deleteEmail').value.trim().toLowerCase();
-  const err = document.getElementById('deleteErr');
-  err.textContent = ''; err.classList.remove('show');
-  if(!email){ err.textContent = 'Email required'; err.classList.add('show'); return; }
+// ── TOGGLE PUBLIC/PRIVATE ──
+async function toggleVisibility(videoId){
+  if(!currentUser){ toast('Login required',true); return; }
   try{
-    const r = await fetch(`${API}/api/videos/delete`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({video_id: currentDeleteId, email})
-    });
+    const r = await fetch(`${API}/api/videos/toggle`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({video_id:videoId,user_id:currentUser.id})});
     const d = await r.json();
-    if(d.success){ toast('🗑️ Deleted!'); closeModal('deleteModal'); loadLibrary(); loadAllVideos(); }
-    else { err.textContent = d.error||'Unauthorized'; err.classList.add('show'); }
-  } catch(e){ err.textContent = 'Server error'; err.classList.add('show'); }
+    if(d.success){
+      const badge = document.getElementById('pub-'+videoId);
+      if(badge){
+        badge.className = `badge-pub ${d.is_public?'public':'private'}`;
+        badge.textContent = d.is_public?'🌐 Public':'🔒 Private';
+      }
+      toast(d.is_public?'Video is now public 🌐':'Video set to private 🔒');
+    } else toast(d.error||'Failed',true);
+  }catch(e){ toast('Error toggling visibility',true); }
 }
 
-// ── ANALYTICS PAGE ─────────────────────────────────────
-async function loadHistory(){
-  const loader = document.getElementById('histLoader');
-  loader.classList.add('active');
-  document.getElementById('userSections').innerHTML = '';
-  document.getElementById('histTable').innerHTML = '';
-  document.getElementById('chartsArea').style.display = 'none';
+// ── COMMENTS ──
+async function toggleComments(videoId, btn){
+  const panel = document.getElementById('cp-'+videoId);
+  if(panel.classList.contains('open')){
+    panel.classList.remove('open');
+    btn.textContent='💬 Comments';
+    return;
+  }
+  panel.classList.add('open');
+  btn.textContent='💬 Hide';
+  await loadComments(videoId);
+}
 
-  // Default: show logged-in user's data, or all if not logged in
-  selectedAnalyticsUserId = currentUser ? currentUser.id : null;
+async function loadComments(videoId){
+  const list = document.getElementById('cl-'+videoId);
+  list.innerHTML='<div class="no-comments">Loading…</div>';
+  try{
+    const r = await fetch(`${API}/api/comments?video_id=${videoId}`);
+    const d = await r.json();
+    if(d.success){
+      if(!d.comments.length){ list.innerHTML='<div class="no-comments">No comments yet. Be the first!</div>'; return; }
+      list.innerHTML='';
+      d.comments.forEach(c=>{
+        const item=document.createElement('div');
+        item.className='comment-item';
+        const initial=c.user_name.charAt(0).toUpperCase();
+        const canDel = currentUser && (currentUser.id===c.user_id);
+        item.innerHTML=`
+          <div class="comment-avatar">${initial}</div>
+          <div class="comment-body">
+            <div class="comment-name">${esc(c.user_name)}</div>
+            <div class="comment-text">${esc(c.text)}</div>
+            <div class="comment-time">${timeAgo(c.created_at)}</div>
+          </div>
+          ${canDel?`<span class="comment-del" onclick="deleteComment('${c.id}','${videoId}')">✕</span>`:''}`;
+        list.appendChild(item);
+      });
+    }
+  }catch(e){ list.innerHTML='<div class="no-comments">Error loading comments</div>'; }
+}
+
+async function sendComment(videoId){
+  if(!currentUser){ toast('Login to comment',true); return; }
+  const inp = document.getElementById('ci-'+videoId);
+  const text = inp.value.trim();
+  if(!text) return;
+  try{
+    const r = await fetch(`${API}/api/comments/add`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({video_id:videoId,user_id:currentUser.id,text})});
+    const d = await r.json();
+    if(d.success){ inp.value=''; await loadComments(videoId); }
+    else toast(d.error||'Failed',true);
+  }catch(e){ toast('Error sending comment',true); }
+}
+
+async function deleteComment(commentId, videoId){
+  if(!currentUser) return;
+  try{
+    const r = await fetch(`${API}/api/comments/delete`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({comment_id:commentId,user_id:currentUser.id})});
+    const d = await r.json();
+    if(d.success) await loadComments(videoId);
+    else toast(d.error||'Cannot delete',true);
+  }catch(e){ toast('Error',true); }
+}
+
+// ── WATCH ──
+function playCardVideo(videoId, embedUrl){
+  if(!currentUser){
+    if(watchVideoId){ toast('Stop current session first',true); openModal('watchModal'); return; }
+    const wrapper = document.getElementById('wrapper-'+videoId);
+    if(!wrapper) return;
+    if(activeCardIframe){
+      activeCardIframe.src='';
+      const pw=activeCardIframe.closest('.video-wrapper');
+      if(pw){ activeCardIframe.remove();
+        const po=pw.querySelector('.play-overlay'),pt=pw.querySelector('.video-thumb');
+        if(po)po.style.display='flex'; if(pt)pt.style.display=''; }
+      activeCardIframe=null;
+    }
+    const overlay=wrapper.querySelector('.play-overlay'), thumb=wrapper.querySelector('.video-thumb');
+    if(overlay)overlay.style.display='none'; if(thumb)thumb.style.display='none';
+    const iframe=document.createElement('iframe');
+    iframe.src=embedUrl+'?autoplay=1&rel=0';
+    iframe.setAttribute('allowfullscreen','');
+    iframe.setAttribute('allow','accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture');
+    iframe.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:none';
+    wrapper.appendChild(iframe); activeCardIframe=iframe;
+    return;
+  }
+  startWatching(videoId, embedUrl);
+}
+
+function startWatching(videoId, embedUrl){
+  if(!currentUser){ openLoginModal(); return; }
+  if(watchVideoId){ toast('A session is running — stop it first!',true); openModal('watchModal'); return; }
+  if(activeCardIframe){
+    activeCardIframe.src='';
+    const pw=activeCardIframe.closest('.video-wrapper');
+    if(pw){ activeCardIframe.remove();
+      const po=pw.querySelector('.play-overlay'),pt=pw.querySelector('.video-thumb');
+      if(po)po.style.display='flex'; if(pt)pt.style.display=''; }
+    activeCardIframe=null;
+  }
+  watchVideoId=videoId; watchSeconds=0; watchSessionStart=new Date().toISOString();
+  document.getElementById('watchFrame').src=embedUrl+'?autoplay=1&rel=0';
+  document.getElementById('watchTimer').textContent='00:00:00';
+  openModal('watchModal');
+  watchInterval=setInterval(()=>{
+    watchSeconds++;
+    const h=String(Math.floor(watchSeconds/3600)).padStart(2,'0');
+    const m=String(Math.floor((watchSeconds%3600)/60)).padStart(2,'0');
+    const s=String(watchSeconds%60).padStart(2,'0');
+    document.getElementById('watchTimer').textContent=`${h}:${m}:${s}`;
+  },1000);
+}
+
+async function stopWatching(){
+  clearInterval(watchInterval);
+  document.getElementById('watchFrame').src='';
+  closeModal('watchModal');
+  if(watchSeconds>2 && currentUser && watchVideoId){
+    try{
+      await fetch(`${API}/api/history/record`,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({user_id:currentUser.id,video_id:watchVideoId,seconds_watched:watchSeconds,session_start:watchSessionStart})});
+      toast(`✅ Saved ${fmtTime(watchSeconds)} watch time`);
+    }catch(e){ toast('Could not save watch time',true); }
+  }
+  watchVideoId=null; watchSeconds=0; watchSessionStart=null;
+}
+
+// ── DELETE VIDEO ──
+function openDeleteModal(id){
+  currentDeleteId=id;
+  document.getElementById('deleteEmail').value='';
+  setErr('deleteErr','');
+  openModal('deleteModal');
+  setTimeout(()=>document.getElementById('deleteEmail').focus(),80);
+}
+async function confirmDelete(){
+  const email=document.getElementById('deleteEmail').value.trim().toLowerCase();
+  setErr('deleteErr','');
+  if(!email){ setErr('deleteErr','Email required'); return; }
+  try{
+    const r=await fetch(`${API}/api/videos/delete`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({video_id:currentDeleteId,email})});
+    const d=await r.json();
+    if(d.success){ toast('Deleted!'); closeModal('deleteModal'); loadLibrary(); loadAllVideos(); }
+    else setErr('deleteErr',d.error||'Unauthorized');
+  }catch(e){ setErr('deleteErr','Server error'); }
+}
+
+// ── PURGE ──
+function openPurgeModal(){
+  ['purgeEmail','purgeConfirmText'].forEach(id=>document.getElementById(id).value='');
+  setErr('purgeErr','');
+  openModal('purgeModal');
+}
+async function confirmPurge(){
+  const email=document.getElementById('purgeEmail').value.trim().toLowerCase();
+  const confirm=document.getElementById('purgeConfirmText').value.trim();
+  setErr('purgeErr','');
+  if(!email){ setErr('purgeErr','Admin email required'); return; }
+  if(confirm!=='DELETE_ALL'){ setErr('purgeErr','Type DELETE_ALL exactly to confirm'); return; }
+  try{
+    const r=await fetch(`${API}/api/admin/purge`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,confirm:'DELETE_ALL'})});
+    const d=await r.json();
+    if(d.success){
+      toast('All data purged 🗑️');
+      closeModal('purgeModal');
+      currentUser=null; localStorage.removeItem('vmUser');
+      updateNavUser();
+      document.getElementById('libGrid').innerHTML='';
+      document.getElementById('allGrid').innerHTML='';
+      loadHistory();
+    } else setErr('purgeErr',d.error||'Failed');
+  }catch(e){ setErr('purgeErr','Server error'); }
+}
+
+// ── ANALYTICS ──
+async function loadHistory(){
+  const loader=document.getElementById('histLoader');
+  loader.classList.add('active');
+  document.getElementById('userSections').innerHTML='';
+  document.getElementById('histTable').innerHTML='';
+  document.getElementById('chartsArea').style.display='none';
+  selectedUserId = currentUser ? currentUser.id : null;
 
   try{
-    const [hr, ar] = await Promise.all([
+    const [hr, ar, sr] = await Promise.all([
       fetch(`${API}/api/history`).then(r=>r.json()),
-      fetch(`${API}/api/analytics?days=${chartDays}${selectedAnalyticsUserId ? '&user_id='+selectedAnalyticsUserId : ''}`).then(r=>r.json())
+      fetch(`${API}/api/analytics?days=${chartDays}${selectedUserId?'&user_id='+selectedUserId:''}`).then(r=>r.json()),
+      fetch(`${API}/api/sessions`).then(r=>r.json())
     ]);
-    if(!hr.success){ toast('Error loading history', true); return; }
+    if(!hr.success){ toast('Error loading history',true); return; }
 
-    allUserStats = hr.user_stats || [];
-    const maxSec = allUserStats.reduce((m, u) => Math.max(m, u.total_seconds), 1);
+    allUserStats=hr.user_stats||[];
+    const maxSec=allUserStats.reduce((m,u)=>Math.max(m,u.total_seconds),1);
 
-    // Build per-user sections
-    const sectionsEl = document.getElementById('userSections');
+    // User cards
+    const sec=document.getElementById('userSections');
     if(!allUserStats.length){
-      sectionsEl.innerHTML = '<div class="empty">No watch history yet</div>';
+      sec.innerHTML='<div class="empty">No watch history yet</div>';
     } else {
-      allUserStats.forEach((u, i) => {
-        const pct = Math.round((u.total_seconds / maxSec) * 100);
-        const color = PALETTE[i % PALETTE.length][0];
-        const isMe = currentUser && u.user_id === currentUser.id;
-        const isSelected = u.user_id === selectedAnalyticsUserId;
-
-        const section = document.createElement('div');
-        section.className = 'analytics-user-section';
-        section.id = 'usersec-' + u.user_id;
-
-        const initial = u.name.charAt(0).toUpperCase();
-        section.innerHTML = `
-          <div class="analytics-user-header ${isSelected ? 'selected' : ''}"
-               id="uhdr-${u.user_id}"
-               onclick="selectAnalyticsUser('${u.user_id}', '${esc(u.name)}')">
-            <div class="user-avatar" style="background:linear-gradient(45deg,${color},${PALETTE[(i+1)%PALETTE.length][0]})">${initial}</div>
-            <div class="user-header-info">
-              <div class="user-header-name">👤 ${esc(u.name)} ${isMe ? '<span style="font-size:10px;background:rgba(64,224,208,.2);color:#40e0d0;padding:2px 8px;border-radius:9px;margin-left:6px">You</span>' : ''}</div>
-              <div class="user-header-email">${esc(u.email)}</div>
-              <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
-            </div>
-            <div class="user-header-stats">
-              <div class="user-header-stat">
-                <div class="val">${fmtTime(u.total_seconds)}</div>
-                <div class="lbl">Watch Time</div>
-              </div>
-              <div class="user-header-stat">
-                <div class="val">${u.videos_watched}</div>
-                <div class="lbl">Videos</div>
-              </div>
-              <div class="user-header-stat">
-                <div class="val">${u.last_watched ? timeAgo(u.last_watched) : 'Never'}</div>
-                <div class="lbl">Last Active</div>
-              </div>
-            </div>
-            ${isSelected ? '<span class="user-section-badge">📊 Viewing Charts</span>' : ''}
-          </div>`;
-        sectionsEl.appendChild(section);
+      allUserStats.forEach((u,i)=>{
+        const pct=Math.round((u.total_seconds/maxSec)*100);
+        const [c1]=PALETTE[i%PALETTE.length];
+        const isMe=currentUser&&u.user_id===currentUser.id;
+        const isSel=u.user_id===selectedUserId;
+        const div=document.createElement('div');
+        div.className='analytics-user-card'+(isSel?' selected':'');
+        div.id='uhdr-'+u.user_id;
+        div.onclick=()=>selectUser(u.user_id);
+        div.innerHTML=`
+          <div class="u-avatar" style="background:linear-gradient(135deg,${c1},${PALETTE[(i+1)%PALETTE.length][0]})">${u.name.charAt(0).toUpperCase()}</div>
+          <div class="u-info">
+            <div class="u-name">${esc(u.name)} ${isMe?'<span style="font-size:10px;color:var(--cyan);background:rgba(0,229,255,.1);padding:2px 8px;border-radius:8px">You</span>':''}</div>
+            <div class="u-email">${esc(u.email)}</div>
+            <div class="u-bar"><div class="u-bar-fill" style="width:${pct}%;background:${c1}"></div></div>
+          </div>
+          <div class="u-stats">
+            <div class="u-stat"><div class="v">${fmtTime(u.total_seconds)}</div><div class="l">Watch Time</div></div>
+            <div class="u-stat"><div class="v">${u.videos_watched}</div><div class="l">Videos</div></div>
+            <div class="u-stat"><div class="v">${u.last_watched?timeAgo(u.last_watched):'Never'}</div><div class="l">Last Active</div></div>
+          </div>
+          ${isSel?'<span class="u-badge">📊 Viewing</span>':''}`;
+        sec.appendChild(div);
       });
     }
 
-    // Render charts for default selected user
-    document.getElementById('chartsArea').style.display = 'block';
-    updateActiveFilterLabel();
+    // Charts
+    document.getElementById('chartsArea').style.display='block';
+    updateFilterLabel();
     renderCharts(ar);
 
-    // Video table (all users)
-    const tb = document.getElementById('histTable');
+    // Login session stats
+    renderLoginStats(sr.stats||[]);
+
+    // Video table
+    const tb=document.getElementById('histTable');
     if(hr.video_details.length){
-      hr.video_details.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><img class="thumb-sm" src="https://img.youtube.com/vi/${ytId(row.url)}/mqdefault.jpg" onerror="this.src=''"></td>
+      hr.video_details.forEach(row=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td><img class="thumb-sm" src="https://img.youtube.com/vi/${ytIdFromUrl(row.url)}/mqdefault.jpg" onerror="this.src=''"></td>
           <td>${esc(row.user_name)}</td>
           <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(row.url)}">${esc(row.url)}</td>
           <td><span class="time-badge">⏱ ${fmtTime(row.total_seconds)}</span></td>
@@ -739,241 +1003,203 @@ async function loadHistory(){
       });
     }
 
-  } catch(e){ toast('Error loading analytics', true); console.error(e); }
+  }catch(e){ toast('Error loading analytics',true); console.error(e); }
   finally{ loader.classList.remove('active'); }
 }
 
-function updateActiveFilterLabel(){
-  const lbl = document.getElementById('activeFilterLabel');
-  if(!selectedAnalyticsUserId){
-    lbl.textContent = 'All Users';
-  } else {
-    const u = allUserStats.find(u => u.user_id === selectedAnalyticsUserId);
-    lbl.textContent = u ? `📊 ${u.name}` : 'Filtered';
-  }
+function renderLoginStats(stats){
+  const grid=document.getElementById('loginStatsGrid');
+  grid.innerHTML='';
+  if(!stats.length){ grid.innerHTML='<div style="color:var(--muted);font-size:13px">No login sessions recorded yet</div>'; return; }
+  stats.forEach(s=>{
+    const c=document.createElement('div');
+    c.className='ls-card';
+    c.innerHTML=`
+      <div class="ls-name">${esc(s.name)}</div>
+      <div class="ls-count">${s.login_count}</div>
+      <div class="ls-label">Total Logins</div>
+      <div class="ls-last">${s.last_login?'Last: '+timeAgo(s.last_login):'Never logged in'}</div>`;
+    grid.appendChild(c);
+  });
 }
 
-async function selectAnalyticsUser(userId, userName){
-  // Toggle: clicking same user deselects (shows all)
-  if(selectedAnalyticsUserId === userId){
-    selectedAnalyticsUserId = null;
-  } else {
-    selectedAnalyticsUserId = userId;
-  }
+function updateFilterLabel(){
+  const lbl=document.getElementById('activeFilterLabel');
+  if(!selectedUserId){ lbl.textContent='All Users'; return; }
+  const u=allUserStats.find(u=>u.user_id===selectedUserId);
+  lbl.textContent=u?`📊 ${u.name}`:'Filtered';
+}
 
-  // Update header highlight states
-  document.querySelectorAll('.analytics-user-header').forEach(h => {
-    h.classList.remove('selected');
-    // Remove badge
-    const badge = h.querySelector('.user-section-badge');
-    if(badge) badge.remove();
+async function selectUser(userId){
+  selectedUserId = selectedUserId===userId ? null : userId;
+  document.querySelectorAll('.analytics-user-card').forEach(c=>{
+    c.classList.remove('selected');
+    const b=c.querySelector('.u-badge'); if(b) b.remove();
   });
-  if(selectedAnalyticsUserId){
-    const hdr = document.getElementById('uhdr-' + selectedAnalyticsUserId);
+  if(selectedUserId){
+    const hdr=document.getElementById('uhdr-'+selectedUserId);
     if(hdr){
       hdr.classList.add('selected');
-      const badge = document.createElement('span');
-      badge.className = 'user-section-badge';
-      badge.textContent = '📊 Viewing Charts';
-      hdr.appendChild(badge);
+      const b=document.createElement('span'); b.className='u-badge'; b.textContent='📊 Viewing';
+      hdr.appendChild(b);
     }
   }
-
-  updateActiveFilterLabel();
+  updateFilterLabel();
   await reloadCharts();
 }
 
-function clearUserFilter(){
-  selectedAnalyticsUserId = null;
-  document.querySelectorAll('.analytics-user-header').forEach(h => {
-    h.classList.remove('selected');
-    const badge = h.querySelector('.user-section-badge');
-    if(badge) badge.remove();
+async function clearUserFilter(){
+  selectedUserId=null;
+  document.querySelectorAll('.analytics-user-card').forEach(c=>{
+    c.classList.remove('selected');
+    const b=c.querySelector('.u-badge'); if(b) b.remove();
   });
-  updateActiveFilterLabel();
-  reloadCharts();
+  updateFilterLabel();
+  await reloadCharts();
 }
 
-function setDays(d, btn){
-  chartDays = d;
-  document.querySelectorAll('.ctrl-btn').forEach(b => { b.classList.remove('ctrl-btn-active'); b.classList.add('ctrl-btn'); });
-  btn.classList.add('ctrl-btn-active'); btn.classList.remove('ctrl-btn');
+function setDays(d,btn){
+  chartDays=d;
+  document.querySelectorAll('.ctrl-btn').forEach(b=>{b.classList.remove('active');});
+  btn.classList.add('active');
   reloadCharts();
 }
 
 async function reloadCharts(){
-  const uid = selectedAnalyticsUserId || '';
-  const url = `${API}/api/analytics?days=${chartDays}${uid ? '&user_id='+uid : ''}`;
+  const uid=selectedUserId||'';
   try{
-    const r = await fetch(url);
-    const d = await r.json();
-    if(d.success){ analyticsData = d; renderCharts(d); }
-  } catch(e){ toast('Error loading charts', true); }
+    const r=await fetch(`${API}/api/analytics?days=${chartDays}${uid?'&user_id='+uid:''}`);
+    const d=await r.json();
+    if(d.success) renderCharts(d);
+  }catch(e){ toast('Error loading charts',true); }
 }
 
-// ── CHART RENDERING ────────────────────────────────────
 function renderCharts(data){
-  renderBarChart(data.day_data || []);
-  renderLineChart(data.hour_data || []);
-  renderSessionsFeed(data.sessions || []);
+  renderBar(data.day_data||[]);
+  renderLine(data.hour_data||[]);
+  renderSessions(data.sessions||[]);
+  renderTopVideos(data.top_videos||[]);
 }
 
-function renderBarChart(dayData){
-  const userNames = [...new Set(dayData.map(r => r.user_name))];
-  const allDays   = [...new Set(dayData.map(r => r.day))].sort();
-
-  if(!allDays.length){
-    if(chartBarInstance){ chartBarInstance.destroy(); chartBarInstance = null; }
-    document.getElementById('barSubtitle').textContent = '— no data';
-    return;
-  }
-  document.getElementById('barSubtitle').textContent = `last ${chartDays} days`;
-
-  const datasets = userNames.map((uname, i) => {
-    const [border, bg] = PALETTE[i % PALETTE.length];
-    return {
-      label: uname,
-      data: allDays.map(day => {
-        const row = dayData.find(r => r.user_name === uname && r.day === day);
-        return row ? +(row.total_seconds / 3600).toFixed(2) : 0;
-      }),
-      backgroundColor: bg, borderColor: border,
-      borderWidth: 2, borderRadius: 5,
-    };
+function renderBar(dayData){
+  const users=[...new Set(dayData.map(r=>r.user_name))];
+  const days=[...new Set(dayData.map(r=>r.day))].sort();
+  const sub=document.getElementById('barSub');
+  if(!days.length){ if(chartBarI){chartBarI.destroy();chartBarI=null;} sub.textContent='— no data'; return; }
+  sub.textContent=`last ${chartDays} days`;
+  const datasets=users.map((u,i)=>{
+    const [bd,bg]=PALETTE[i%PALETTE.length];
+    return{label:u,data:days.map(d=>{const r=dayData.find(r=>r.user_name===u&&r.day===d);return r?+(r.total_seconds/3600).toFixed(2):0;}),
+      backgroundColor:bg,borderColor:bd,borderWidth:2,borderRadius:4};
   });
-
-  const ctx = document.getElementById('chartBar').getContext('2d');
-  if(chartBarInstance) chartBarInstance.destroy();
-  chartBarInstance = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: allDays.map(d => d.slice(5)), datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: userNames.length > 1, labels: { color: 'rgba(255,255,255,.7)', font: {size:11} }},
-        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}h` }}
-      },
-      scales: {
-        x: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:10} }, grid: { color: 'rgba(255,255,255,.06)' }},
-        y: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:10}, callback: v => `${v}h` },
-             grid: { color: 'rgba(255,255,255,.08)' },
-             title: { display: true, text: 'Hours', color: 'rgba(255,255,255,.4)', font:{size:11} }}
-      }
-    }
-  });
+  const ctx=document.getElementById('chartBar').getContext('2d');
+  if(chartBarI) chartBarI.destroy();
+  chartBarI=new Chart(ctx,{type:'bar',data:{labels:days.map(d=>d.slice(5)),datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:users.length>1,labels:{color:'rgba(232,234,240,.6)',font:{size:11}}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}h`}}},
+    scales:{x:{ticks:{color:'rgba(232,234,240,.45)',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}},
+      y:{ticks:{color:'rgba(232,234,240,.45)',font:{size:10},callback:v=>`${v}h`},grid:{color:'rgba(255,255,255,.07)'},
+        title:{display:true,text:'Hours',color:'rgba(232,234,240,.3)',font:{size:11}}}}}});
 }
 
-function renderLineChart(hourData){
-  const userNames = [...new Set(hourData.map(r => r.user_name))];
-  const hours = Array.from({length:24}, (_, i) => i);
-
-  if(!hourData.length){
-    if(chartLineInstance){ chartLineInstance.destroy(); chartLineInstance = null; }
-    document.getElementById('lineSubtitle').textContent = '— no data';
-    return;
-  }
-  document.getElementById('lineSubtitle').textContent = `last ${chartDays} days`;
-
-  const datasets = userNames.map((uname, i) => {
-    const [border, bg] = PALETTE[i % PALETTE.length];
-    return {
-      label: uname,
-      data: hours.map(h => {
-        const row = hourData.find(r => r.user_name === uname && r.hour === h);
-        return row ? +(row.total_seconds / 60).toFixed(1) : 0;
-      }),
-      borderColor: border, backgroundColor: bg,
-      borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 5,
-      tension: 0.38, fill: true,
-    };
+function renderLine(hourData){
+  const users=[...new Set(hourData.map(r=>r.user_name))];
+  const hours=Array.from({length:24},(_,i)=>i);
+  const sub=document.getElementById('lineSub');
+  if(!hourData.length){ if(chartLineI){chartLineI.destroy();chartLineI=null;} sub.textContent='— no data'; return; }
+  sub.textContent=`last ${chartDays} days`;
+  const datasets=users.map((u,i)=>{
+    const [bd,bg]=PALETTE[i%PALETTE.length];
+    return{label:u,data:hours.map(h=>{const r=hourData.find(r=>r.user_name===u&&r.hour===h);return r?+(r.total_seconds/60).toFixed(1):0;}),
+      borderColor:bd,backgroundColor:bg,borderWidth:2.5,pointRadius:2,tension:.38,fill:true};
   });
-
-  const ctx = document.getElementById('chartLine').getContext('2d');
-  if(chartLineInstance) chartLineInstance.destroy();
-  chartLineInstance = new Chart(ctx, {
-    type: 'line',
-    data: { labels: hours.map(h => `${String(h).padStart(2,'0')}:00`), datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: userNames.length > 1, labels: { color: 'rgba(255,255,255,.7)', font:{size:11} }},
-        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y}m` }}
-      },
-      scales: {
-        x: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:9}, maxRotation:45 }, grid: { color: 'rgba(255,255,255,.06)' }},
-        y: { ticks: { color: 'rgba(255,255,255,.55)', font:{size:10}, callback: v => `${v}m` },
-             grid: { color: 'rgba(255,255,255,.08)' },
-             title: { display: true, text: 'Minutes', color: 'rgba(255,255,255,.4)', font:{size:11} }}
-      }
-    }
-  });
+  const ctx=document.getElementById('chartLine').getContext('2d');
+  if(chartLineI) chartLineI.destroy();
+  chartLineI=new Chart(ctx,{type:'line',data:{labels:hours.map(h=>`${String(h).padStart(2,'0')}:00`),datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:users.length>1,labels:{color:'rgba(232,234,240,.6)',font:{size:11}}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}m`}}},
+    scales:{x:{ticks:{color:'rgba(232,234,240,.45)',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,.05)'}},
+      y:{ticks:{color:'rgba(232,234,240,.45)',font:{size:10},callback:v=>`${v}m`},grid:{color:'rgba(255,255,255,.07)'},
+        title:{display:true,text:'Minutes',color:'rgba(232,234,240,.3)',font:{size:11}}}}}});
 }
 
-function renderSessionsFeed(sessions){
-  const feed = document.getElementById('sessionsFeed');
-  if(!sessions.length){ feed.innerHTML = '<div class="empty">No sessions recorded yet</div>'; return; }
-  feed.innerHTML = '';
-  sessions.slice(0, 30).forEach(s => {
-    const item = document.createElement('div');
-    item.className = 'session-item';
-    item.innerHTML = `
-      <img class="session-thumb" src="https://img.youtube.com/vi/${ytId(s.url)}/mqdefault.jpg" onerror="this.src=''">
-      <div class="session-info">
-        <div class="session-user">👤 ${esc(s.user_name)}</div>
-        <div class="session-url">${esc(s.url)}</div>
+function renderSessions(sessions){
+  const feed=document.getElementById('sessionsFeed');
+  if(!sessions.length){ feed.innerHTML='<div class="empty">No sessions yet</div>'; return; }
+  feed.innerHTML='';
+  sessions.slice(0,25).forEach(s=>{
+    const item=document.createElement('div');
+    item.className='session-item';
+    item.innerHTML=`
+      <img class="s-thumb" src="https://img.youtube.com/vi/${ytIdFromUrl(s.url)}/mqdefault.jpg" onerror="this.src=''">
+      <div class="s-info">
+        <div class="s-user">👤 ${esc(s.user_name)}</div>
+        <div class="s-url">${esc(s.url)}</div>
       </div>
-      <div class="session-time-info">
+      <div class="s-right">
         <span class="time-badge">⏱ ${fmtTime(s.seconds_watched)}</span>
-        <div class="session-when">${timeAgo(s.session_start)}</div>
+        <div class="s-when">${timeAgo(s.session_start)}</div>
       </div>`;
     feed.appendChild(item);
   });
 }
 
-// ── HELPERS ────────────────────────────────────────────
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function openTab(url){ window.open(url, '_blank', 'noopener,noreferrer'); }
+function renderTopVideos(top){
+  const el=document.getElementById('topVideosList');
+  if(!top.length){ el.innerHTML='<div class="empty">No play data yet</div>'; return; }
+  el.innerHTML='';
+  top.forEach((v,i)=>{
+    const item=document.createElement('div');
+    item.className='top-video-item';
+    item.innerHTML=`
+      <div class="tv-rank">${i+1}</div>
+      <img class="tv-thumb" src="https://img.youtube.com/vi/${ytIdFromUrl(v.url)}/mqdefault.jpg" onerror="this.src=''">
+      <div class="tv-info">
+        <div class="tv-url">${esc(v.url)}</div>
+        <div class="tv-user">👤 ${esc(v.user_name)} · ${fmtTime(v.total_seconds)}</div>
+      </div>
+      <span class="tv-plays">▶ ${v.play_count}×</span>`;
+    el.appendChild(item);
+  });
+}
 
+// ── HELPERS ──
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function openTab(url){ window.open(url,'_blank','noopener,noreferrer'); }
+function isNew(iso){ return (Date.now()-new Date(iso).getTime())<86400000; }
 function fmtTime(sec){
-  sec = parseInt(sec) || 0;
-  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  sec=parseInt(sec)||0;
+  const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;
   if(h) return `${h}h ${m}m`;
   if(m) return `${m}m ${s}s`;
   return `${s}s`;
 }
-
 function timeAgo(iso){
-  const diff = Date.now() - new Date(iso);
-  if(diff < 60000) return 'Just now';
-  if(diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
-  if(diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+  const diff=Date.now()-new Date(iso);
+  if(diff<60000) return 'Just now';
+  if(diff<3600000) return `${Math.floor(diff/60000)}m ago`;
+  if(diff<86400000) return `${Math.floor(diff/3600000)}h ago`;
   return `${Math.floor(diff/86400000)}d ago`;
 }
-
-function ytId(url){
-  try{
-    const u = new URL(url);
-    if(u.hostname.includes('youtube.com')) return u.searchParams.get('v') || '';
-    if(u.hostname.includes('youtu.be')) return u.pathname.slice(1);
-  } catch(e){}
-  return '';
-}
-
-function toast(msg, isErr = false){
-  const t = document.createElement('div');
-  t.className = `toast ${isErr ? 'err' : 'ok'}`;
-  t.textContent = msg;
+function toast(msg,isErr=false){
+  const t=document.createElement('div');
+  t.className=`toast ${isErr?'err':'ok'}`;
+  t.textContent=msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3000);
+  setTimeout(()=>t.remove(),3200);
 }
 
-// ── KEYBOARD + OVERLAY CLOSE ───────────────────────────
-document.getElementById('videoUrl')?.addEventListener('keypress', e => { if(e.key==='Enter') addVideo(); });
-document.getElementById('deleteEmail').addEventListener('keypress', e => { if(e.key==='Enter') confirmDelete(); });
-document.getElementById('loginEmail').addEventListener('keypress', e => { if(e.key==='Enter') confirmLogin(); });
-['loginModal','deleteModal'].forEach(id => {
-  document.getElementById(id).addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(id); });
+// ── KEYBOARD / OVERLAY CLOSE ──
+document.getElementById('videoUrl')?.addEventListener('keypress',e=>{ if(e.key==='Enter') addVideo(); });
+document.getElementById('deleteEmail').addEventListener('keypress',e=>{ if(e.key==='Enter') confirmDelete(); });
+document.getElementById('loginEmail').addEventListener('keypress',e=>{ if(e.key==='Enter') confirmLogin(); });
+document.getElementById('purgeConfirmText').addEventListener('keypress',e=>{ if(e.key==='Enter') confirmPurge(); });
+['loginModal','deleteModal','purgeModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{ if(e.target===e.currentTarget) closeModal(id); });
 });
+document.getElementById('watchModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) stopWatching(); });
 </script>
 </body>
 </html>
