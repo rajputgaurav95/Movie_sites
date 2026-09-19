@@ -1,21 +1,31 @@
 from aiohttp import web
+import aiohttp
 import aiohttp_cors
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
-import os, hashlib, uuid, asyncio
+import os, hashlib, uuid, asyncio, json
 
+# ──────────────────────────────────────────────────────────────
+# CONFIG
+# SECURITY NOTE: these fall back to the original hardcoded values so
+# nothing breaks if you don't set env vars, but you should set
+# DB_PASSWORD (and rotate it — it was pasted in plaintext before) as
+# an environment variable on your host (Render/Railway/etc.) instead
+# of leaving real credentials in source control.
+# ──────────────────────────────────────────────────────────────
 DB_CONFIG = {
-    "user": "postgres.ntshrlzpfyvfnkkxckfs",
-    "password": "Gourav@123#",
-    "host": "aws-1-ap-south-1.pooler.supabase.com",
-    "port": 6543,
-    "dbname": "postgres",
+    "user": os.environ.get("DB_USER", "postgres.ntshrlzpfyvfnkkxckfs"),
+    "password": os.environ.get("DB_PASSWORD", "Gourav@123#"),
+    "host": os.environ.get("DB_HOST", "aws-1-ap-south-1.pooler.supabase.com"),
+    "port": int(os.environ.get("DB_PORT", 6543)),
+    "dbname": os.environ.get("DB_NAME", "postgres"),
     "sslmode": "require"
 }
 
-ADMIN_EMAIL = "abc@gmail.com"
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "abc@gmail.com")
+MAX_GROUP_SIZE = 5  # includes the creator/initiator
 db_connection = None
 
 
@@ -25,8 +35,9 @@ def get_db():
         if db_connection is None or db_connection.closed:
             db_connection = psycopg2.connect(**DB_CONFIG)
         else:
-            # Test connection is alive
-            db_connection.cursor().execute("SELECT 1")
+            cur = db_connection.cursor()
+            cur.execute("SELECT 1")
+            cur.close()
         return db_connection
     except Exception:
         try:
@@ -144,7 +155,6 @@ async def init_db(app):
             text TEXT NOT NULL,
             created_at TIMESTAMPTZ DEFAULT NOW())''')
 
-        # Chat messages table
         c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             from_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -152,6 +162,37 @@ async def init_db(app):
             message TEXT NOT NULL,
             is_read BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMPTZ DEFAULT NOW())''')
+
+        # Group chat tables (WhatsApp-style groups, capped at MAX_GROUP_SIZE members)
+        c.execute('''CREATE TABLE IF NOT EXISTS groups (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL,
+            created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW())''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS group_members (
+            group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            joined_at TIMESTAMPTZ DEFAULT NOW(),
+            PRIMARY KEY (group_id, user_id))''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS group_messages (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+            from_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            from_name TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW())''')
+
+        # Call history (written by the client when a call ends)
+        c.execute('''CREATE TABLE IF NOT EXISTS call_logs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            call_type TEXT NOT NULL,
+            initiator_id UUID REFERENCES users(id) ON DELETE SET NULL,
+            group_id UUID REFERENCES groups(id) ON DELETE SET NULL,
+            participant_names TEXT,
+            started_at TIMESTAMPTZ DEFAULT NOW(),
+            ended_at TIMESTAMPTZ)''')
 
         for sql in [
             'CREATE INDEX IF NOT EXISTS idx_vid_created ON videos(created_at DESC)',
@@ -162,6 +203,10 @@ async def init_db(app):
             'CREATE INDEX IF NOT EXISTS idx_chat_from ON chat_messages(from_user_id)',
             'CREATE INDEX IF NOT EXISTS idx_chat_to ON chat_messages(to_user_id)',
             'CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at DESC)',
+            'CREATE INDEX IF NOT EXISTS idx_gm_user ON group_members(user_id)',
+            'CREATE INDEX IF NOT EXISTS idx_gm_group ON group_members(group_id)',
+            'CREATE INDEX IF NOT EXISTS idx_gmsg_group ON group_messages(group_id)',
+            'CREATE INDEX IF NOT EXISTS idx_gmsg_created ON group_messages(created_at DESC)',
         ]:
             try: c.execute(sql)
             except Exception: db_connection.rollback()
@@ -231,7 +276,6 @@ async def get_users(request):
         requester_id = request.rel_url.query.get('requester_id')
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Check if requester is admin
         is_admin = False
         if requester_id:
             cur.execute('SELECT is_admin FROM users WHERE id=%s', (requester_id,))
@@ -253,7 +297,7 @@ async def get_users(request):
                  'total_watch_seconds': int(r['total_watch_seconds']),
                  'created_at': r['created_at'].isoformat()}
             if is_admin:
-                d['email'] = r['email']  # Only admin sees emails
+                d['email'] = r['email']
             else:
                 d['email'] = r['email'][:2] + '***@***' + r['email'].split('@')[-1][-3:]
             return d
@@ -263,7 +307,6 @@ async def get_users(request):
 
 
 async def update_user(request):
-    """Admin: update user name/email/admin status"""
     conn = get_db()
     if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
     try:
@@ -299,7 +342,6 @@ async def update_user(request):
 
 
 async def delete_user(request):
-    """Admin: delete a user and all their data"""
     conn = get_db()
     if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
     try:
@@ -425,7 +467,6 @@ async def toggle_visibility(request):
         cur.execute('SELECT user_id, is_public FROM videos WHERE id=%s', (str(uuid.UUID(vid)),))
         row = cur.fetchone()
         if not row: cur.close(); return web.json_response({'error': 'Not found'}, status=404)
-        # Allow admin or owner
         cur.execute('SELECT is_admin FROM users WHERE id=%s', (str(uuid.UUID(uid)),))
         u = cur.fetchone()
         if str(row['user_id']) != str(uuid.UUID(uid)) and not (u and u['is_admin']):
@@ -447,14 +488,12 @@ async def delete_video(request):
         uid = d.get('user_id')
         if not vid: return web.json_response({'error': 'video_id required'}, status=400)
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        # Check if user is admin or owner
         is_admin = email == ADMIN_EMAIL.lower()
         if not is_admin and uid:
             cur.execute('SELECT is_admin, id FROM users WHERE id=%s', (str(uuid.UUID(uid)),))
             u = cur.fetchone()
             is_admin = u and u['is_admin']
         if not is_admin:
-            # Check if owner
             cur.execute('SELECT user_id FROM videos WHERE id=%s', (str(uuid.UUID(vid)),))
             v = cur.fetchone()
             if not v or (uid and str(v['user_id']) != str(uuid.UUID(uid))):
@@ -519,7 +558,6 @@ async def delete_comment(request):
         cur.execute('SELECT user_id FROM comments WHERE id=%s', (str(uuid.UUID(comment_id)),))
         row = cur.fetchone()
         if not row: cur.close(); return web.json_response({'error': 'Not found'}, status=404)
-        # Check admin or owner
         is_admin_del = False
         if user_id:
             cur.execute('SELECT is_admin FROM users WHERE id=%s', (str(uuid.UUID(user_id)),))
@@ -535,7 +573,109 @@ async def delete_comment(request):
         conn.rollback(); return web.json_response({'error': str(e)}, status=500)
 
 
-# ── CHAT ─────────────────────────────────────────
+# ── WEBSOCKET (presence, DM/group push, call signaling) ──────
+async def ws_send(app, user_id, data):
+    """Best-effort push to a user's live socket. Returns False if they're offline."""
+    ws = app.get('ws_clients', {}).get(str(user_id))
+    if not ws or ws.closed:
+        return False
+    try:
+        await ws.send_json(data)
+        return True
+    except Exception:
+        app['ws_clients'].pop(str(user_id), None)
+        return False
+
+
+async def handle_ws_message(app, sender_id, data):
+    mtype = data.get('type')
+    active_calls = app.setdefault('active_calls', {})
+
+    if mtype == 'call-invite':
+        call_id = data.get('call_id')
+        to_ids = [str(u) for u in data.get('to_user_ids', []) if u]
+        if not call_id or not to_ids:
+            return
+        if len(set(to_ids + [sender_id])) > MAX_GROUP_SIZE:
+            await ws_send(app, sender_id, {'type': 'call-error', 'call_id': call_id,
+                'error': f'Calls are limited to {MAX_GROUP_SIZE} people'})
+            return
+        active_calls[call_id] = {
+            'initiator': sender_id,
+            'invited': set(to_ids),
+            'accepted': set(),
+            'call_type': data.get('call_type', 'audio'),
+            'group_id': data.get('group_id'),
+        }
+        for uid in to_ids:
+            await ws_send(app, uid, data)
+
+    elif mtype == 'call-accept':
+        call_id = data.get('call_id')
+        call = active_calls.get(call_id)
+        if not call:
+            return
+        already_accepted = list(call['accepted'])
+        call['accepted'].add(sender_id)
+        # Tell the newly-accepted client who else is already connected, so it
+        # can proactively dial them (fixes the "3rd person joins late" gap).
+        await ws_send(app, sender_id, {'type': 'call-roster', 'call_id': call_id,
+            'initiator': call['initiator'], 'participants': already_accepted})
+        targets = ({call['initiator']} | call['invited']) - {sender_id}
+        for uid in targets:
+            await ws_send(app, uid, data)
+
+    elif mtype in ('call-decline', 'call-cancel', 'call-end'):
+        call_id = data.get('call_id')
+        call = active_calls.get(call_id)
+        targets = set()
+        if call:
+            targets = ({call['initiator']} | call['invited'] | call['accepted']) - {sender_id}
+        for uid in targets:
+            await ws_send(app, uid, data)
+        if call:
+            if mtype == 'call-cancel' or (mtype == 'call-end' and sender_id == call['initiator']):
+                active_calls.pop(call_id, None)
+            else:
+                call['invited'].discard(sender_id)
+                call['accepted'].discard(sender_id)
+                if not call['accepted'] and not call['invited']:
+                    active_calls.pop(call_id, None)
+
+    elif mtype in ('webrtc-offer', 'webrtc-answer', 'webrtc-ice'):
+        to_id = data.get('to_user_id')
+        if to_id:
+            await ws_send(app, str(to_id), data)
+
+
+async def websocket_handler(request):
+    ws = web.WebSocketResponse(heartbeat=25)
+    await ws.prepare(request)
+    user_id = request.rel_url.query.get('user_id')
+    if not user_id:
+        await ws.close(code=4000, message=b'user_id required')
+        return ws
+    request.app['ws_clients'][user_id] = ws
+    try:
+        async for msg in ws:
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                try:
+                    data = json.loads(msg.data)
+                except Exception:
+                    continue
+                try:
+                    await handle_ws_message(request.app, user_id, data)
+                except Exception as e:
+                    print(f'WS handling error: {e}')
+            elif msg.type == aiohttp.WSMsgType.ERROR:
+                break
+    finally:
+        if request.app['ws_clients'].get(user_id) is ws:
+            del request.app['ws_clients'][user_id]
+    return ws
+
+
+# ── CHAT (1:1) ───────────────────────────────────
 async def send_message(request):
     conn = get_db()
     if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
@@ -548,14 +688,14 @@ async def send_message(request):
         cur.execute('''INSERT INTO chat_messages(from_user_id,to_user_id,message)
             VALUES(%s,%s,%s) RETURNING *''', (str(uuid.UUID(from_id)), str(uuid.UUID(to_id)), msg))
         row = cur.fetchone(); conn.commit()
-        # Fetch sender name
         cur.execute('SELECT name FROM users WHERE id=%s', (from_id,))
         sender = cur.fetchone(); cur.close()
-        return web.json_response({'success': True, 'message': {
-            'id': str(row['id']), 'from_user_id': str(row['from_user_id']),
+        payload = {'id': str(row['id']), 'from_user_id': str(row['from_user_id']),
             'to_user_id': str(row['to_user_id']), 'message': row['message'],
             'from_name': sender['name'] if sender else '?',
-            'is_read': row['is_read'], 'created_at': row['created_at'].isoformat()}})
+            'is_read': row['is_read'], 'created_at': row['created_at'].isoformat()}
+        await ws_send(request.app, to_id, {'type': 'chat-message', 'message': payload})
+        return web.json_response({'success': True, 'message': payload})
     except Exception as e:
         conn.rollback(); return web.json_response({'error': str(e)}, status=500)
 
@@ -578,12 +718,10 @@ async def get_messages(request):
                    OR (m.from_user_id=%s AND m.to_user_id=%s)
                 ORDER BY m.created_at ASC LIMIT 200''', (uid, other_id, other_id, uid))
             msgs = cur.fetchall()
-            # Mark as read
             cur.execute('''UPDATE chat_messages SET is_read=TRUE
                 WHERE to_user_id=%s AND from_user_id=%s AND is_read=FALSE''', (uid, other_id))
             conn.commit()
         else:
-            # Get conversation list: latest message per contact
             cur.execute('''SELECT DISTINCT ON (partner_id) *
                 FROM (
                     SELECT m.*, uf.name as from_name, ut.name as to_name,
@@ -595,7 +733,6 @@ async def get_messages(request):
                     WHERE m.from_user_id=%s OR m.to_user_id=%s
                 ) sub ORDER BY partner_id, created_at DESC''', (uid, uid, uid, uid))
             msgs = cur.fetchall()
-        # Unread count
         cur.execute('SELECT COUNT(*) as cnt FROM chat_messages WHERE to_user_id=%s AND is_read=FALSE', (uid,))
         unread = cur.fetchone()['cnt']; cur.close()
         return web.json_response({'success': True, 'unread_count': int(unread),
@@ -609,6 +746,152 @@ async def get_messages(request):
                 'created_at': m['created_at'].isoformat()} for m in msgs]})
     except Exception as e:
         return web.json_response({'error': str(e)}, status=500)
+
+
+# ── GROUPS (up to MAX_GROUP_SIZE members, group chat + group calls) ──
+async def create_group(request):
+    conn = get_db()
+    if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
+    try:
+        d = await request.json()
+        name = d.get('name', '').strip()
+        creator_id = d.get('creator_id')
+        member_ids = list(dict.fromkeys(d.get('member_ids', [])))  # dedupe, keep order
+        if not name or not creator_id: return web.json_response({'error': 'name+creator_id required'}, status=400)
+        member_ids = [m for m in member_ids if m != creator_id]
+        if not member_ids:
+            return web.json_response({'error': 'Add at least 1 other member'}, status=400)
+        if len(member_ids) + 1 > MAX_GROUP_SIZE:
+            return web.json_response({'error': f'Groups are limited to {MAX_GROUP_SIZE} members'}, status=400)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('INSERT INTO groups(name, created_by) VALUES(%s,%s) RETURNING *', (name, str(uuid.UUID(creator_id))))
+        g = cur.fetchone()
+        for uid in [creator_id] + member_ids:
+            cur.execute('INSERT INTO group_members(group_id, user_id) VALUES(%s,%s) ON CONFLICT DO NOTHING',
+                (g['id'], str(uuid.UUID(uid))))
+        conn.commit()
+        cur.execute('SELECT u.id,u.name FROM group_members gm JOIN users u ON u.id=gm.user_id WHERE gm.group_id=%s', (g['id'],))
+        members = cur.fetchall(); cur.close()
+        group_payload = {'id': str(g['id']), 'name': g['name'], 'created_by': str(g['created_by']),
+            'members': [{'id': str(m['id']), 'name': m['name']} for m in members],
+            'created_at': g['created_at'].isoformat()}
+        for m in members:
+            if str(m['id']) != creator_id:
+                await ws_send(request.app, str(m['id']), {'type': 'group-created', 'group': group_payload})
+        return web.json_response({'success': True, 'group': group_payload})
+    except Exception as e:
+        conn.rollback(); return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_groups(request):
+    conn = get_db()
+    if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
+    try:
+        uid = request.rel_url.query.get('user_id')
+        if not uid: return web.json_response({'error': 'user_id required'}, status=400)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('''SELECT g.* FROM groups g
+            JOIN group_members gm ON gm.group_id=g.id
+            WHERE gm.user_id=%s ORDER BY g.created_at DESC''', (uid,))
+        groups = cur.fetchall()
+        result = []
+        for g in groups:
+            cur.execute('SELECT u.id,u.name FROM group_members gm JOIN users u ON u.id=gm.user_id WHERE gm.group_id=%s', (g['id'],))
+            members = cur.fetchall()
+            cur.execute('SELECT message,from_name,created_at FROM group_messages WHERE group_id=%s ORDER BY created_at DESC LIMIT 1', (g['id'],))
+            last = cur.fetchone()
+            result.append({
+                'id': str(g['id']), 'name': g['name'],
+                'members': [{'id': str(m['id']), 'name': m['name']} for m in members],
+                'last_message': last['message'] if last else None,
+                'last_from': last['from_name'] if last else None,
+                'created_at': g['created_at'].isoformat()
+            })
+        cur.close()
+        return web.json_response({'success': True, 'groups': result})
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def send_group_message(request):
+    conn = get_db()
+    if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
+    try:
+        d = await request.json()
+        group_id = d.get('group_id'); user_id = d.get('user_id'); msg = d.get('message', '').strip()
+        if not all([group_id, user_id, msg]): return web.json_response({'error': 'Missing fields'}, status=400)
+        if len(msg) > 2000: return web.json_response({'error': 'Too long'}, status=400)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('SELECT 1 FROM group_members WHERE group_id=%s AND user_id=%s', (group_id, user_id))
+        if not cur.fetchone():
+            cur.close(); return web.json_response({'error': 'Not a member of this group'}, status=403)
+        cur.execute('SELECT name FROM users WHERE id=%s', (user_id,))
+        sender = cur.fetchone()
+        sender_name = sender['name'] if sender else '?'
+        cur.execute('''INSERT INTO group_messages(group_id,from_user_id,from_name,message)
+            VALUES(%s,%s,%s,%s) RETURNING *''', (group_id, user_id, sender_name, msg))
+        row = cur.fetchone(); conn.commit()
+        cur.execute('SELECT user_id FROM group_members WHERE group_id=%s AND user_id!=%s', (group_id, user_id))
+        recipients = [str(r['user_id']) for r in cur.fetchall()]
+        cur.close()
+        payload = {'id': str(row['id']), 'group_id': group_id, 'from_user_id': user_id,
+            'from_name': sender_name, 'message': row['message'], 'created_at': row['created_at'].isoformat()}
+        for rid in recipients:
+            await ws_send(request.app, rid, {'type': 'group-message', 'message': payload})
+        return web.json_response({'success': True, 'message': payload})
+    except Exception as e:
+        conn.rollback(); return web.json_response({'error': str(e)}, status=500)
+
+
+async def get_group_messages(request):
+    conn = get_db()
+    if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
+    try:
+        group_id = request.rel_url.query.get('group_id')
+        user_id = request.rel_url.query.get('user_id')
+        if not group_id or not user_id: return web.json_response({'error': 'group_id+user_id required'}, status=400)
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('SELECT 1 FROM group_members WHERE group_id=%s AND user_id=%s', (group_id, user_id))
+        if not cur.fetchone():
+            cur.close(); return web.json_response({'error': 'Not a member of this group'}, status=403)
+        cur.execute('SELECT * FROM group_messages WHERE group_id=%s ORDER BY created_at ASC LIMIT 200', (group_id,))
+        rows = cur.fetchall(); cur.close()
+        return web.json_response({'success': True, 'messages': [{
+            'id': str(r['id']), 'from_user_id': str(r['from_user_id']), 'from_name': r['from_name'],
+            'message': r['message'], 'created_at': r['created_at'].isoformat()} for r in rows]})
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
+
+
+async def leave_group(request):
+    conn = get_db()
+    if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
+    try:
+        d = await request.json()
+        group_id = d.get('group_id'); user_id = d.get('user_id')
+        if not group_id or not user_id: return web.json_response({'error': 'group_id+user_id required'}, status=400)
+        cur = conn.cursor()
+        cur.execute('DELETE FROM group_members WHERE group_id=%s AND user_id=%s', (group_id, user_id))
+        conn.commit(); cur.close()
+        return web.json_response({'success': True})
+    except Exception as e:
+        conn.rollback(); return web.json_response({'error': str(e)}, status=500)
+
+
+# ── CALL HISTORY (logged by the client on hangup) ────────────
+async def log_call(request):
+    conn = get_db()
+    if not conn: return web.json_response({'error': 'DB not connected'}, status=503)
+    try:
+        d = await request.json()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute('''INSERT INTO call_logs(call_type, initiator_id, group_id, participant_names, ended_at)
+            VALUES(%s,%s,%s,%s,NOW()) RETURNING id''',
+            (d.get('call_type'), d.get('initiator_id'), d.get('group_id'), d.get('participant_names')))
+        row = cur.fetchone(); conn.commit(); cur.close()
+        return web.json_response({'success': True, 'id': str(row['id'])})
+    except Exception as e:
+        conn.rollback(); return web.json_response({'error': str(e)}, status=500)
 
 
 # ── WATCH HISTORY & ANALYTICS ────────────────────
@@ -727,7 +1010,8 @@ async def purge_all(request):
         if email != ADMIN_EMAIL.lower(): return web.json_response({'error': 'Admin only'}, status=403)
         if confirm != 'DELETE_ALL': return web.json_response({'error': 'Must confirm DELETE_ALL'}, status=400)
         cur = conn.cursor()
-        for t in ['chat_messages', 'comments', 'watch_history', 'video_views', 'login_sessions', 'videos', 'users']:
+        for t in ['call_logs', 'group_messages', 'group_members', 'groups', 'chat_messages',
+                  'comments', 'watch_history', 'video_views', 'login_sessions', 'videos', 'users']:
             cur.execute(f'TRUNCATE TABLE {t} CASCADE')
         conn.commit(); cur.close()
         return web.json_response({'success': True, 'message': 'All data purged.'})
@@ -745,6 +1029,9 @@ async def index(request):
 
 def create_app():
     app = web.Application()
+    app['ws_clients'] = {}
+    app['active_calls'] = {}
+
     cors = aiohttp_cors.setup(app, defaults={"*": aiohttp_cors.ResourceOptions(
         allow_credentials=True, expose_headers="*", allow_headers="*", allow_methods="*")})
 
@@ -771,6 +1058,14 @@ def create_app():
     app.router.add_post('/api/chat/send', send_message)
     app.router.add_get('/api/chat/messages', get_messages)
 
+    app.router.add_post('/api/groups/create', create_group)
+    app.router.add_get('/api/groups', get_groups)
+    app.router.add_post('/api/groups/message', send_group_message)
+    app.router.add_get('/api/groups/messages', get_group_messages)
+    app.router.add_post('/api/groups/leave', leave_group)
+
+    app.router.add_post('/api/calls/log', log_call)
+
     app.router.add_post('/api/history/record', record_watch)
     app.router.add_get('/api/history', get_history)
     app.router.add_get('/api/analytics', get_analytics)
@@ -779,11 +1074,17 @@ def create_app():
 
     for route in list(app.router.routes()):
         cors.add(route)
+
+    # Registered after the CORS wrapping loop on purpose: aiohttp_cors wraps
+    # handlers expecting a plain Response, and doesn't need to (or reliably)
+    # handle a WebSocketResponse / the WS upgrade handshake.
+    app.router.add_get('/ws', websocket_handler)
+
     app.on_startup.append(init_db)
     app.on_cleanup.append(close_db)
     return app
 
 
 if __name__ == '__main__':
-    print("🚀 VIDLIB v5 — Chat · Admin · Keep-alive · 5-page UI")
-    web.run_app(create_app(), host='0.0.0.0', port=9000)
+    print("🚀 VIDLIB v6 — Chat · Groups · Calls (audio/video) · Admin · Keep-alive")
+    web.run_app(create_app(), host='0.0.0.0', port=int(os.environ.get('PORT', 9000)))
